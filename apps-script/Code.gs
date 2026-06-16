@@ -580,85 +580,91 @@ function handleDeleteProduct(body) {
 }
 
 function handleSaveReportToDrive(body) {
-  var email = body.email;
+  var email       = body.email;
   var transactions = body.transactions || [];
-  var periodLabel = body.period_label || 'Laporan';
-  var storeName = body.store_name || 'LanggengMakmur';
-  
+  var periodLabel  = body.period_label || 'Laporan';
+  var storeName    = body.store_name   || 'LanggengMakmur';
+
   if (!email) return fail('Email penerima diperlukan');
-  
+
   try {
-    // 1. Create a temporary Google Sheet
-    var tempSheet = SpreadsheetApp.create('Temp_Laporan_' + periodLabel);
-    var sheet = tempSheet.getActiveSheet();
-    
-    // Set headers and info
-    sheet.appendRow([storeName + ' — Laporan Keuangan ' + periodLabel]);
-    sheet.appendRow(['Diunduh: ' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm')]);
-    sheet.appendRow(['']);
-    
-    var totalIncome = transactions.filter(function(t) { return t.type === 'income'; }).reduce(function(s, t) { return s + Number(t.amount); }, 0);
-    var totalExpense = transactions.filter(function(t) { return t.type === 'expense'; }).reduce(function(s, t) { return s + Number(t.amount); }, 0);
+    var fileName = storeName + ' — Laporan ' + periodLabel + ' (' +
+      Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd') + ')';
+
+    // 1. Create new Google Sheet in Drive
+    var ss    = SpreadsheetApp.create(fileName);
+    var sheet = ss.getActiveSheet();
+    sheet.setName('Laporan');
+
+    // --- Header block ---
+    sheet.getRange('A1').setValue(fileName);
+    sheet.getRange('A2').setValue(
+      'Dibuat: ' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd MMM yyyy HH:mm') + ' WIB'
+    );
+    sheet.getRange('A3').setValue('');
+
+    // --- Summary ---
+    var totalIncome  = 0;
+    var totalExpense = 0;
+    transactions.forEach(function(t) {
+      if (t.type === 'income')  totalIncome  += Number(t.amount) || 0;
+      if (t.type === 'expense') totalExpense += Number(t.amount) || 0;
+    });
     var netBalance = totalIncome - totalExpense;
-    var margin = totalIncome > 0 ? ((netBalance / totalIncome) * 100).toFixed(1) : '0';
-    
-    sheet.appendRow(['Total Pemasukan', '', '', '', '', totalIncome]);
-    sheet.appendRow(['Total Pengeluaran', '', '', '', '', totalExpense]);
-    sheet.appendRow(['Laba Bersih', '', '', '', '', netBalance]);
-    sheet.appendRow(['Margin Keuntungan', '', '', '', '', margin + '%']);
-    sheet.appendRow(['']);
-    
-    sheet.appendRow(['No', 'Tanggal', 'Keterangan', 'Kategori', 'Tipe', 'Nominal (Rp)']);
-    
-    transactions.forEach(function(t, i) {
-      sheet.appendRow([
-        i + 1,
-        t.transaction_date || t.date || '',
-        t.description || '',
-        t.category || '',
-        t.type === 'income' ? 'Masuk' : 'Keluar',
-        t.type === 'income' ? Number(t.amount) : -Number(t.amount)
-      ]);
-    });
-    
-    // Format the spreadsheet slightly for visual quality
-    sheet.getRange("A1:F1").setFontWeight("bold").setFontSize(14);
-    sheet.getRange("A4:A7").setFontWeight("bold");
-    sheet.getRange("F4:F7").setFontWeight("bold");
-    sheet.getRange("A9:F9").setFontWeight("bold").setBackground("#e5e7eb");
-    
-    SpreadsheetApp.flush();
-    
-    var fileId = tempSheet.getId();
-    var fileName = 'Laporan_' + periodLabel + '_' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
-    
-    // Convert to Excel .xlsx using URLFetchApp
-    var url = "https://docs.google.com/spreadsheets/d/" + fileId + "/export?format=xlsx";
-    var res = UrlFetchApp.fetch(url, {
-      headers: {
-        "Authorization": "Bearer " +  ScriptApp.getOAuthToken()
-      },
-      muteHttpExceptions: true
-    });
-    
-    if (res.getResponseCode() !== 200) {
-      // Fallback: If conversion fails, just share the Google Sheet itself
-      var file = DriveApp.getFileById(fileId);
-      file.setName(fileName);
-      file.addEditor(email);
-      return ok({ fileUrl: file.getUrl(), format: 'gsheet' });
+    var margin     = totalIncome > 0 ? ((netBalance / totalIncome) * 100).toFixed(1) : '0';
+
+    var summaryData = [
+      ['RINGKASAN KEUANGAN', ''],
+      ['Total Pemasukan',    totalIncome],
+      ['Total Pengeluaran',  totalExpense],
+      ['Laba Bersih',        netBalance],
+      ['Margin Keuntungan',  margin + '%'],
+      ['', ''],
+    ];
+    sheet.getRange(4, 1, summaryData.length, 2).setValues(summaryData);
+
+    // --- Transaction table header ---
+    var startRow = 4 + summaryData.length;
+    var tableHeader = [['No', 'Tanggal', 'Keterangan', 'Kategori', 'Tipe', 'Nominal (Rp)']];
+    sheet.getRange(startRow, 1, 1, 6).setValues(tableHeader);
+
+    // --- Transaction rows ---
+    if (transactions.length > 0) {
+      var rows = transactions.map(function(t, i) {
+        return [
+          i + 1,
+          t.transaction_date || t.date || '',
+          t.description      || '',
+          t.category         || '',
+          t.type === 'income' ? 'Masuk' : 'Keluar',
+          t.type === 'income' ? Number(t.amount) : -Number(t.amount)
+        ];
+      });
+      sheet.getRange(startRow + 1, 1, rows.length, 6).setValues(rows);
     }
-    
-    var blob = res.getBlob().setName(fileName + ".xlsx");
-    var excelFile = DriveApp.createFile(blob);
-    excelFile.addEditor(email);
-    
-    // Delete the temp spreadsheet
-    DriveApp.getFileById(fileId).setTrashed(true);
-    
-    return ok({ fileUrl: excelFile.getUrl(), format: 'xlsx' });
+
+    // --- Formatting ---
+    sheet.getRange('A1').setFontSize(14).setFontWeight('bold');
+    sheet.getRange('A4').setFontWeight('bold').setBackground('#f3f4f6');
+    sheet.getRange(startRow, 1, 1, 6).setFontWeight('bold').setBackground('#1d4ed8').setFontColor('#ffffff');
+    sheet.setColumnWidth(3, 250);
+    sheet.autoResizeColumns(1, 6);
+
+    SpreadsheetApp.flush();
+
+    // 2. Share the file with the user's email as editor
+    var file = DriveApp.getFileById(ss.getId());
+    file.addEditor(email);
+
+    return ok({
+      fileUrl:  file.getUrl(),
+      fileName: fileName,
+      format:   'gsheet'
+    });
+
   } catch (err) {
-    return fail('Gagal memproses Google Drive: ' + err.message);
+    Logger.log('handleSaveReportToDrive error: ' + err.message);
+    return fail('Gagal menyimpan ke Google Drive: ' + err.message);
   }
 }
 

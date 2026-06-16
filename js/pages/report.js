@@ -374,16 +374,24 @@ const ReportPage = {
       const email = user?.email || profile.email;
 
       if (!email) {
-        Toast.warning('Email Anda tidak ditemukan. Silakan isi email di Pengaturan.');
+        Toast.warning('Email Anda tidak ditemukan. Silakan login ulang atau isi email di Pengaturan.');
         return;
       }
 
-      Toast.info(`Menyimpan laporan ${cfg.label} ke Google Drive (${email})...`);
+      Toast.info(`⏳ Membuat laporan ${cfg.label} di Google Drive... (${email})`);
       try {
         const transactions = await Api.getTransactions(cfg.api);
         const res = await Api.saveReportToDrive(cfg.api, transactions, email);
-        const formatLabel = res.format === 'xlsx' ? 'Excel (.xlsx)' : 'Google Sheet';
-        Toast.success(`✓ Laporan ${formatLabel} berhasil disimpan ke Google Drive Anda! Silakan cek folder 'Shared with me' (Dibagikan dengan saya) atau email masuk Anda.`);
+        // Show success with direct link to open the file
+        const fileName = res.fileName || 'Laporan';
+        const fileUrl  = res.fileUrl  || 'https://drive.google.com';
+        Toast.success(
+          `✅ Laporan berhasil disimpan ke Google Drive!\n` +
+          `File "${fileName}" dibagikan ke ${email}.\n` +
+          `Cek folder "Shared with me" di Google Drive Anda.`
+        );
+        // Also open the file immediately in a new tab
+        setTimeout(() => { window.open(fileUrl, '_blank'); }, 800);
       } catch (err) {
         Toast.error('Gagal menyimpan ke Google Drive: ' + err.message);
       }
