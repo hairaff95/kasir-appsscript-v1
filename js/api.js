@@ -2,7 +2,7 @@
  * api.js v2 — API bridge + LocalStorage mock (updated field names)
  */
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzBTWZ8gm032_u3QKykn1yOS9kBNJoiu1RDXdjz_GMoI-XPxGiV5ao2dFI71EeAS0j-/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZog8eCK54VzmJfZUhGlRugStR0Qg2_63mnmGFqklsc1TcEimerFBwdmgjbWCn3gVT/exec';
 const DEMO_MODE = localStorage.getItem('demo_mode') !== 'false';
 
 const _DB = {
@@ -146,6 +146,14 @@ const MockDB = {
       debt_paid_period: paidPeriod,
       expense_categories: cats,
     };
+  },
+
+  saveReportToDrive(period, transactions, email) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ fileUrl: 'https://drive.google.com/', format: 'xlsx' });
+      }, 1000);
+    });
   },
 
   // ---- Debts ----
@@ -373,6 +381,27 @@ const Api = {
     const res = await this._call(() => DEMO_MODE ? MockDB.getReport(p) : this._fetch('getReport', { store_id: App.storeId(), period: p }));
     ApiCache.set(key, res);
     return res;
+  },
+
+  async saveReportToDrive(period, transactions, email) {
+    const profile = JSON.parse(localStorage.getItem('lm_profile') || '{}');
+    const storeName = profile.storeName || 'LanggengMakmur';
+    const periodLabel = {
+      today: 'Hari Ini',
+      week: 'Minggu Ini',
+      month: 'Bulan Ini',
+      all: 'Semua Data'
+    }[period] || 'Laporan';
+
+    return this._call(() => DEMO_MODE
+      ? MockDB.saveReportToDrive(period, transactions, email)
+      : this._post('saveReportToDrive', {
+        email,
+        transactions,
+        period_label: periodLabel,
+        store_name: storeName
+      })
+    );
   },
 
   async login(email, password) {

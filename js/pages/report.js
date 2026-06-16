@@ -3,6 +3,7 @@
  */
 const ReportPage = {
   _period: 'daily',
+  _exportDest: 'local',
 
   async render(container) {
     container.innerHTML = this._skeleton();
@@ -229,10 +230,21 @@ const ReportPage = {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-600)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </div>
             <div>
-              <div style="font-size:14px;font-weight:700;color:var(--on-surface)">Unduh Laporan Excel</div>
-              <div style="font-size:11px;color:var(--on-surface-variant);opacity:0.65">File .xls siap dibuka di Excel / Google Sheets</div>
+              <div style="font-size:14px;font-weight:700;color:var(--on-surface)">Ekspor Laporan Excel</div>
+              <div style="font-size:11px;color:var(--on-surface-variant);opacity:0.65">File .xlsx siap dibuka di Excel / Google Sheets</div>
             </div>
           </div>
+
+          <!-- Destination Switcher -->
+          <div style="display:flex; background:var(--surface-container-low); border:1.5px solid var(--outline-variant); border-radius:14px; padding:3px; margin-bottom:14px;">
+            <button id="export-dest-local" onclick="ReportPage._setExportDest('local')" style="flex:1; border:none; background:${this._exportDest === 'local' ? 'var(--white)' : 'transparent'}; border-radius:11px; padding:6px; font-size:12px; font-weight:${this._exportDest === 'local' ? '700' : '600'}; color:${this._exportDest === 'local' ? 'var(--primary-600)' : 'var(--on-surface-variant)'}; cursor:pointer; box-shadow:${this._exportDest === 'local' ? 'var(--shadow-xs)' : 'none'}; transition:all 0.15s;">
+              Unduh ke Device
+            </button>
+            <button id="export-dest-drive" onclick="ReportPage._setExportDest('drive')" style="flex:1; border:none; background:${this._exportDest === 'drive' ? 'var(--white)' : 'transparent'}; border-radius:11px; padding:6px; font-size:12px; font-weight:${this._exportDest === 'drive' ? '700' : '600'}; color:${this._exportDest === 'drive' ? 'var(--primary-600)' : 'var(--on-surface-variant)'}; cursor:pointer; box-shadow:${this._exportDest === 'drive' ? 'var(--shadow-xs)' : 'none'}; transition:all 0.15s;">
+              Simpan ke Google Drive
+            </button>
+          </div>
+
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <button onclick="ReportPage._downloadReport('today')" class="download-report-btn" style="background:rgba(22,163,74,0.07);border-color:rgba(22,163,74,0.15)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green-600)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -325,6 +337,14 @@ const ReportPage = {
     App.navigate('report');
   },
 
+  _setExportDest(dest) {
+    this._exportDest = dest;
+    const container = document.getElementById('page-container');
+    if (container) {
+      this.render(container);
+    }
+  },
+
   /* ============================================================
      DOWNLOAD LAPORAN — Excel (.xls) — FIXED
      ============================================================ */
@@ -340,12 +360,33 @@ const ReportPage = {
     const cfg = periodMap[period];
     if (!cfg) return;
 
-    Toast.info(`Menyiapkan laporan ${cfg.label}...`);
-    try {
-      const transactions = await Api.getTransactions(cfg.api);
-      this._exportXLS(transactions, cfg.filename, cfg.label);
-    } catch (err) {
-      Toast.error('Gagal unduh laporan: ' + err.message);
+    if (this._exportDest === 'local') {
+      Toast.info(`Menyiapkan laporan ${cfg.label}...`);
+      try {
+        const transactions = await Api.getTransactions(cfg.api);
+        this._exportXLS(transactions, cfg.filename, cfg.label);
+      } catch (err) {
+        Toast.error('Gagal unduh laporan: ' + err.message);
+      }
+    } else {
+      const user = App.getUser();
+      const profile = JSON.parse(localStorage.getItem('lm_profile') || '{}');
+      const email = user?.email || profile.email;
+
+      if (!email) {
+        Toast.warning('Email Anda tidak ditemukan. Silakan isi email di Pengaturan.');
+        return;
+      }
+
+      Toast.info(`Menyimpan laporan ${cfg.label} ke Google Drive (${email})...`);
+      try {
+        const transactions = await Api.getTransactions(cfg.api);
+        const res = await Api.saveReportToDrive(cfg.api, transactions, email);
+        const formatLabel = res.format === 'xlsx' ? 'Excel (.xlsx)' : 'Google Sheet';
+        Toast.success(`✓ Laporan ${formatLabel} berhasil disimpan ke Google Drive Anda! Silakan cek folder 'Shared with me' (Dibagikan dengan saya) atau email masuk Anda.`);
+      } catch (err) {
+        Toast.error('Gagal menyimpan ke Google Drive: ' + err.message);
+      }
     }
   },
   _exportXLS(transactions, filename, label) {
