@@ -4,6 +4,7 @@
 const AuthPage = {
   _view: 'login', // 'login' | 'register'
   _busy: false,
+  _tempEmail: '',
 
   render(container) {
     if (this._view === 'register') {
@@ -41,7 +42,7 @@ const AuthPage = {
             <form id="login-form" style="display: flex; flex-direction: column; gap: 16px;">
               <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">Email</label>
-                <input type="email" id="login-email" required class="form-input" placeholder="contoh@gmail.com" style="width: 100%; padding: 12px 14px; border: 1.5px solid rgba(196,197,217,0.4); border-radius: 14px; font-size: 14px; outline: none; transition: all 0.2s;" />
+                <input type="email" id="login-email" required class="form-input" value="${this._tempEmail || ''}" placeholder="contoh@gmail.com" style="width: 100%; padding: 12px 14px; border: 1.5px solid rgba(196,197,217,0.4); border-radius: 14px; font-size: 14px; outline: none; transition: all 0.2s;" />
               </div>
               
               <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
@@ -214,21 +215,20 @@ const AuthPage = {
       this._setBusy(true, 'register');
       try {
         const user = await Api.register(name, email, password);
-        Toast.success('Akun berhasil didaftarkan!');
         
-        // Save user session & set production mode
-        localStorage.setItem('lm_user', JSON.stringify(user));
-        localStorage.setItem('demo_mode', 'false');
-        
-        // Save profile
+        // Save profile locally so it's loaded when they login
         localStorage.setItem('lm_profile', JSON.stringify({
-          name: user.name,
+          name: name,
           storeName: storeName,
-          email: user.email,
+          email: email,
         }));
 
-        // Restart App to refresh shell
-        location.reload();
+        Toast.success('Registrasi berhasil! Silakan masuk dengan akun Anda.');
+        
+        // Redirect to login screen & pre-fill email
+        AuthPage._tempEmail = email;
+        this._setBusy(false, 'register');
+        AuthPage._setView('login');
       } catch (err) {
         Toast.error('Pendaftaran gagal: ' + err.message);
         this._setBusy(false, 'register');

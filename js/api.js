@@ -242,8 +242,8 @@ const Api = {
   async addDebtPayment(data) { return this._call(() => DEMO_MODE ? MockDB.addDebtPayment(data) : this._post('addDebtPayment', data)); },
   async getDebtPayments(debtId) { return this._call(() => DEMO_MODE ? MockDB.getDebtPayments(debtId) : this._fetch('getDebtDetail', { debt_id: debtId }).then(d => d.payments)); },
   async getReport(p = 'daily') { return this._call(() => DEMO_MODE ? MockDB.getReport(p) : this._fetch('getReport', { store_id: App.storeId(), period: p })); },
-  async login(email, password) { return this._call(() => DEMO_MODE ? MockDB.login(email, password) : this._post('login', { email, password })); },
-  async register(name, email, password) { return this._call(() => DEMO_MODE ? MockDB.register(name, email, password) : this._post('register', { name, email, password })); },
+  async login(email, password) { return this._call(() => this._post('login', { email, password })); },
+  async register(name, email, password) { return this._call(() => this._post('register', { name, email, password })); },
 };
 
 window.Api = Api;
