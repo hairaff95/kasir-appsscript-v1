@@ -31,7 +31,7 @@ const AccountPage = {
      MAIN VIEW
      ============================================================ */
   _html() {
-    const profile  = this._getProfile();
+    const profile = this._getProfile();
     const initials = this._initials(profile.name);
     const isDemoMode = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
 
@@ -51,8 +51,11 @@ const AccountPage = {
 
         <!-- Profile Card -->
         <div style="background:var(--white);border:1px solid rgba(196,197,217,0.25);border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-sm)">
-          <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--primary-100),var(--primary-200));border-radius:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(16,74,240,0.15)">
-            <span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:var(--primary-700)">${initials}</span>
+          <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--primary-100),var(--primary-200));border-radius:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(16,74,240,0.15);overflow:hidden">
+            ${profile.photo
+              ? `<img src="${profile.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:18px" alt="Foto Profil">`
+              : `<span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:var(--primary-700)">${initials}</span>`
+            }
           </div>
           <div style="flex:1;min-width:0">
             <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escHtml(profile.name)}</div>
@@ -158,9 +161,9 @@ const AccountPage = {
      ============================================================ */
   _editProfileHtml() {
     const profile = this._getProfile();
-    const parts   = profile.name.split(' ');
+    const parts = profile.name.split(' ');
     const firstName = parts[0] || '';
-    const lastName  = parts.slice(1).join(' ') || '';
+    const lastName = parts.slice(1).join(' ') || '';
 
     return `
       <!-- Header with back -->
@@ -172,17 +175,23 @@ const AccountPage = {
           <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--on-surface)">Edit Profil</h2>
         </div>
 
-        <!-- Avatar -->
+        <!-- Avatar (clickable for photo upload) -->
         <div style="display:flex;justify-content:center">
-          <div style="position:relative">
-            <div id="ep-avatar" style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary-100),var(--primary-200));border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(16,74,240,0.18);border:3px solid white">
-              <span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:var(--primary-700)">${this._initials(profile.name)}</span>
+          <div style="position:relative;cursor:pointer" onclick="document.getElementById('ep-photo-input').click()" title="Ganti foto profil">
+            <div id="ep-avatar" style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary-100),var(--primary-200));border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(16,74,240,0.18);border:3px solid white;overflow:hidden">
+              ${profile.photo
+                ? `<img id="ep-avatar-img" src="${profile.photo}" style="width:100%;height:100%;object-fit:cover" alt="Foto Profil">`
+                : `<span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:var(--primary-700)">${this._initials(profile.name)}</span>`
+              }
             </div>
             <div style="position:absolute;bottom:-6px;right:-6px;width:28px;height:28px;background:var(--primary-600);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(16,74,240,0.3)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </div>
           </div>
         </div>
+        <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--on-surface-variant);opacity:0.6">Ketuk untuk ganti foto</div>
+        <!-- Hidden file input for photo upload -->
+        <input type="file" id="ep-photo-input" accept="image/*" style="display:none">
       </div>
 
       <!-- Form -->
@@ -235,7 +244,7 @@ const AccountPage = {
      STORE INFO / GOOGLE SHEETS CONNECTION VIEW
      ============================================================ */
   _storeInfoHtml() {
-    const profile  = this._getProfile();
+    const profile = this._getProfile();
     const isDemoMode = typeof DEMO_MODE !== 'undefined' && DEMO_MODE;
 
     return `
@@ -256,13 +265,13 @@ const AccountPage = {
       <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
 
         <!-- Status card -->
-        <div style="background:${isDemoMode?'rgba(186,26,26,0.05)':'rgba(22,163,74,0.05)'};border:1.5px solid ${isDemoMode?'rgba(186,26,26,0.12)':'rgba(22,163,74,0.15)'};border-radius:20px;padding:16px;display:flex;gap:12px;align-items:flex-start">
-          <div style="width:36px;height:36px;background:${isDemoMode?'rgba(186,26,26,0.08)':'rgba(22,163,74,0.10)'};border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${isDemoMode?'var(--red-600)':'var(--green-600)'}" stroke-width="2"><circle cx="12" cy="12" r="10"/>${isDemoMode?'<line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>':'<path d="M5 13l4 4L19 7"/>'}</svg>
+        <div style="background:${isDemoMode ? 'rgba(186,26,26,0.05)' : 'rgba(22,163,74,0.05)'};border:1.5px solid ${isDemoMode ? 'rgba(186,26,26,0.12)' : 'rgba(22,163,74,0.15)'};border-radius:20px;padding:16px;display:flex;gap:12px;align-items:flex-start">
+          <div style="width:36px;height:36px;background:${isDemoMode ? 'rgba(186,26,26,0.08)' : 'rgba(22,163,74,0.10)'};border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${isDemoMode ? 'var(--red-600)' : 'var(--green-600)'}" stroke-width="2"><circle cx="12" cy="12" r="10"/>${isDemoMode ? '<line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' : '<path d="M5 13l4 4L19 7"/>'}</svg>
           </div>
           <div>
-            <div style="font-size:13px;font-weight:700;color:${isDemoMode?'var(--red-600)':'var(--green-600)'}">${isDemoMode?'Mode Demo Aktif':'Terhubung ke Google Sheets'}</div>
-            <div style="font-size:12px;color:var(--on-surface-variant);opacity:0.7;margin-top:2px;line-height:1.5">${isDemoMode?'Data tersimpan di perangkat (localStorage). Ubah DEMO_MODE = false di js/api.js untuk produksi.':'Semua data disimpan di Google Sheets melalui Apps Script.'}</div>
+            <div style="font-size:13px;font-weight:700;color:${isDemoMode ? 'var(--red-600)' : 'var(--green-600)'}">${isDemoMode ? 'Mode Demo Aktif' : 'Terhubung ke Google Sheets'}</div>
+            <div style="font-size:12px;color:var(--on-surface-variant);opacity:0.7;margin-top:2px;line-height:1.5">${isDemoMode ? 'Data tersimpan di perangkat (localStorage). Ubah DEMO_MODE = false di js/api.js untuk produksi.' : 'Semua data disimpan di Google Sheets melalui Apps Script.'}</div>
           </div>
         </div>
 
@@ -270,11 +279,11 @@ const AccountPage = {
         <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--on-surface-variant);opacity:0.6;margin-bottom:2px">Detail Toko</div>
           ${[
-            ['Nama Toko', profile.storeName],
-            ['Pemilik', profile.name],
-            ['Email', profile.email || '-'],
-            ['No. HP', profile.phone || '-'],
-          ].map(([l,v]) => `
+        ['Nama Toko', profile.storeName],
+        ['Pemilik', profile.name],
+        ['Email', profile.email || '-'],
+        ['No. HP', profile.phone || '-'],
+      ].map(([l, v]) => `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(196,197,217,0.12)">
               <span style="font-size:13px;color:var(--on-surface-variant);opacity:0.7">${l}</span>
               <span style="font-size:13px;font-weight:600;color:var(--on-surface)">${Utils.escHtml(v)}</span>
@@ -339,7 +348,7 @@ const AccountPage = {
           </div>
           <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px">LanggengMakmur Cashier</h3>
           <p style="font-size:13px;color:rgba(255,255,255,0.75);margin-bottom:20px;line-height:1.5">Install gratis sebagai PWA (Progressive Web App) — tidak perlu Google Play Store</p>
-          <button id="btn-install-now" onclick="AccountPage._triggerInstall()" class="btn-cta" style="background:rgba(255,255,255,0.20);border:1.5px solid rgba(255,255,255,0.35);color:white;box-shadow:none;${hasPWAPrompt?'':'opacity:0.7'}">
+          <button id="btn-install-now" onclick="AccountPage._triggerInstall()" class="btn-cta" style="background:rgba(255,255,255,0.20);border:1.5px solid rgba(255,255,255,0.35);color:white;box-shadow:none;${hasPWAPrompt ? '' : 'opacity:0.7'}">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" style="width:18px;height:18px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             ${hasPWAPrompt ? 'Pasang Aplikasi Sekarang' : 'Buka di Chrome untuk Install'}
           </button>
@@ -350,11 +359,11 @@ const AccountPage = {
           <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--on-surface-variant);opacity:0.6;margin-bottom:12px">Keuntungan Install PWA</div>
           <div style="display:flex;flex-direction:column;gap:10px">
             ${[
-              ['bolt', 'Lebih Cepat', 'Akses langsung dari layar utama tanpa buka browser'],
-              ['wifi_off', 'Bisa Offline', 'Tetap bisa digunakan walau tanpa internet'],
-              ['notifications', 'Pengalaman Native', 'Tampil full-screen seperti aplikasi asli'],
-              ['storage', 'Hemat Ruang', 'Ukuran jauh lebih kecil dari aplikasi biasa'],
-            ].map(([ic, t, d]) => `
+        ['bolt', 'Lebih Cepat', 'Akses langsung dari layar utama tanpa buka browser'],
+        ['wifi_off', 'Bisa Offline', 'Tetap bisa digunakan walau tanpa internet'],
+        ['notifications', 'Pengalaman Native', 'Tampil full-screen seperti aplikasi asli'],
+        ['storage', 'Hemat Ruang', 'Ukuran jauh lebih kecil dari aplikasi biasa'],
+      ].map(([ic, t, d]) => `
               <div style="display:flex;gap:12px;align-items:flex-start">
                 <div style="width:32px;height:32px;background:rgba(16,74,240,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-600)" stroke-width="2">${this._iconPath(ic)}</svg>
@@ -373,12 +382,12 @@ const AccountPage = {
           <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--on-surface-variant);opacity:0.6;margin-bottom:12px">Cara Install Manual (Chrome Android)</div>
           <div style="display:flex;flex-direction:column;gap:12px">
             ${[
-              ['1', 'Buka di Chrome', 'Pastikan aplikasi dibuka menggunakan browser Google Chrome'],
-              ['2', 'Ketuk ⋮ (Menu)', 'Klik titik tiga di pojok kanan atas browser Chrome'],
-              ['3', 'Pilih "Add to Home Screen"', 'Atau "Install App" / "Tambahkan ke Layar Utama"'],
-              ['4', 'Konfirmasi Install', 'Ketuk "Add" atau "Pasang" pada dialog yang muncul'],
-              ['5', 'Selesai!', 'Ikon aplikasi muncul di layar utama Android Anda'],
-            ].map(([num, t, d]) => `
+        ['1', 'Buka di Chrome', 'Pastikan aplikasi dibuka menggunakan browser Google Chrome'],
+        ['2', 'Ketuk ⋮ (Menu)', 'Klik titik tiga di pojok kanan atas browser Chrome'],
+        ['3', 'Pilih "Add to Home Screen"', 'Atau "Install App" / "Tambahkan ke Layar Utama"'],
+        ['4', 'Konfirmasi Install', 'Ketuk "Add" atau "Pasang" pada dialog yang muncul'],
+        ['5', 'Selesai!', 'Ikon aplikasi muncul di layar utama Android Anda'],
+      ].map(([num, t, d]) => `
               <div style="display:flex;gap:12px;align-items:flex-start">
                 <div style="width:28px;height:28px;background:var(--primary-600);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
                   <span style="font-size:12px;font-weight:800;color:white">${num}</span>
@@ -420,10 +429,11 @@ const AccountPage = {
 
       <div style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:20px">
 
-        <!-- App Logo -->
-        <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary),var(--primary-700));border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(16,74,240,0.25)">
-          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </div>
+        <!-- App Logo: tampilkan foto profil jika ada, fallback ke ikon SVG -->
+        ${(()=>{const p=this._getProfile();return p.photo
+          ? `<div style="width:90px;height:90px;border-radius:28px;overflow:hidden;box-shadow:0 8px 24px rgba(16,74,240,0.25);border:3px solid white"><img src="${p.photo}" style="width:100%;height:100%;object-fit:cover" alt="Foto Profil"></div>`
+          : `<div style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary),var(--primary-700));border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(16,74,240,0.25)"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>`;
+        })()}
         <div style="text-align:center">
           <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--on-surface)">LanggengMakmur Cashier</h2>
           <p style="font-size:13px;color:var(--on-surface-variant);opacity:0.65;margin-top:4px">Versi 2.0.0 &bull; PWA</p>
@@ -431,13 +441,13 @@ const AccountPage = {
 
         <div class="card" style="padding:0;width:100%">
           ${[
-            ['Versi Aplikasi', '2.0.0'],
-            ['Tipe', 'Progressive Web App (PWA)'],
-            ['Backend', 'Google Apps Script + Sheets'],
-            ['Bahasa', 'Vanilla JavaScript'],
-            ['Dibuat dengan', 'Cinta untuk UMKM Indonesia'],
-          ].map(([l,v], i, a) => `
-            <div style="display:flex;justify-content:space-between;padding:13px 16px;${i<a.length-1?'border-bottom:1px solid rgba(196,197,217,0.12)':''}">
+        ['Versi Aplikasi', '2.0.0'],
+        ['Tipe', 'Progressive Web App (PWA)'],
+        ['Backend', 'Google Apps Script + Sheets'],
+        ['Bahasa', 'Vanilla JavaScript'],
+        ['Dibuat Oleh', 'Haidar Rafi'],
+      ].map(([l, v], i, a) => `
+            <div style="display:flex;justify-content:space-between;padding:13px 16px;${i < a.length - 1 ? 'border-bottom:1px solid rgba(196,197,217,0.12)' : ''}">
               <span style="font-size:13px;color:var(--on-surface-variant);opacity:0.7">${l}</span>
               <span style="font-size:13px;font-weight:600;color:var(--on-surface)">${v}</span>
             </div>
@@ -461,26 +471,50 @@ const AccountPage = {
   },
 
   _bindEdit(container) {
-    // Live avatar update
-    const fnInput  = container.querySelector('#ep-firstname');
-    const lnInput  = container.querySelector('#ep-lastname');
-    const avatarEl = container.querySelector('#ep-avatar span');
+    // Live avatar update (initials only when no photo)
+    const fnInput = container.querySelector('#ep-firstname');
+    const lnInput = container.querySelector('#ep-lastname');
+    const avatarEl = container.querySelector('#ep-avatar');
 
     const updateAvatar = () => {
+      const avatarImg = avatarEl.querySelector('img');
+      if (avatarImg) return; // foto sudah ada, jangan update inisial
       const fn = fnInput.value.trim();
       const ln = lnInput.value.trim();
       const full = (fn + ' ' + ln).trim() || 'U';
-      if (avatarEl) avatarEl.textContent = this._initials(full);
+      const span = avatarEl.querySelector('span');
+      if (span) span.textContent = this._initials(full);
     };
 
     fnInput?.addEventListener('input', updateAvatar);
     lnInput?.addEventListener('input', updateAvatar);
     setTimeout(() => fnInput?.focus(), 100);
 
+    // Photo upload handler
+    const photoInput = container.querySelector('#ep-photo-input');
+    photoInput?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        Toast.warning('Foto terlalu besar. Maksimal 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = ev.target.result;
+        // Update preview avatar
+        avatarEl.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover" alt="Foto Profil">`;
+        // Store temporarily on the input element
+        photoInput.dataset.photo = base64;
+        Toast.success('Foto dipilih. Klik "Update Profil" untuk menyimpan.');
+      };
+      reader.readAsDataURL(file);
+    });
+
     container.querySelector('#edit-profile-form').addEventListener('submit', e => {
       e.preventDefault();
-      const fn   = container.querySelector('#ep-firstname').value.trim();
-      const ln   = container.querySelector('#ep-lastname').value.trim();
+      const fn = container.querySelector('#ep-firstname').value.trim();
+      const ln = container.querySelector('#ep-lastname').value.trim();
       const name = (fn + ' ' + ln).trim();
       const store = container.querySelector('#ep-storename').value.trim();
       const email = container.querySelector('#ep-email').value.trim();
@@ -488,7 +522,11 @@ const AccountPage = {
 
       if (!name) { Toast.warning('Nama wajib diisi'); return; }
 
-      this._saveProfile({ name, storeName: store || name + ' Store', email, phone });
+      const photoData = photoInput?.dataset.photo || null;
+      const saveData = { name, storeName: store || name + ' Store', email, phone };
+      if (photoData) saveData.photo = photoData;
+
+      this._saveProfile(saveData);
       Toast.success('Profil berhasil diperbarui');
       this._go('main');
     });
@@ -518,8 +556,8 @@ const AccountPage = {
 
   _initials(name) {
     const parts = (name || 'U').trim().split(' ').filter(Boolean);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
-    return parts[0].slice(0,2).toUpperCase();
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
   },
 
   _getProfile() {
@@ -529,6 +567,7 @@ const AccountPage = {
       storeName: saved.storeName || 'LanggengMakmur',
       email:     saved.email     || '',
       phone:     saved.phone     || '',
+      photo:     saved.photo     || null,
     };
   },
 
@@ -903,7 +942,7 @@ const AccountPage = {
 
       const qtyInput = row.querySelector('.item-qty');
       const rateInput = row.querySelector('.item-rate');
-      
+
       qtyInput.addEventListener('input', recalculateTotals);
       rateInput.addEventListener('input', () => {
         Utils.formatInputRupiah(rateInput);
@@ -936,7 +975,7 @@ const AccountPage = {
 
     container.querySelector('#invoice-generator-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
       const profileInfo = {
         name: container.querySelector('#inv-sender-name').value.trim(),
         subtitle: container.querySelector('#inv-sender-sub').value.trim(),
