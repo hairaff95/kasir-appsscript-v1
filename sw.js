@@ -1,46 +1,59 @@
 /**
- * Kasir Mini — Service Worker v2
+ * Kasir Mini — Service Worker v3
+ * Dynamic base path: works on localhost, IP, AND GitHub Pages subdirectory
  * Cache First untuk aset statis, Network First untuk API
  */
 
-const CACHE_NAME    = 'kasir-mini-v10';
-const OFFLINE_PAGE  = '/offline.html';
+const CACHE_NAME = 'kasir-mini-v11';
 
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/manifest.json',
-  '/css/app.css',
-  '/js/utils.js',
-  '/js/toast.js',
-  '/js/api.js',
-  '/js/app.js',
-  '/js/pages/dashboard.js',
-  '/js/pages/income.js',
-  '/js/pages/expense.js',
-  '/js/pages/debt.js',
-  '/js/pages/history.js',
-  '/js/pages/report.js',
-  '/js/pages/account.js',
-  '/js/pages/auth.js',
-  '/js/pages/product.js',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+// Deteksi base path secara dinamis dari lokasi sw.js
+// Contoh: jika SW ada di /kasir-appsscript-v1/sw.js → BASE = /kasir-appsscript-v1/
+//         jika SW ada di /sw.js                     → BASE = /
+var BASE = self.location.pathname.replace(/\/sw\.js$/, '') + '/';
+var OFFLINE_PAGE = BASE + 'offline.html';
+
+var STATIC_ASSETS = [
+  BASE,
+  BASE + 'index.html',
+  BASE + 'offline.html',
+  BASE + 'manifest.json',
+  BASE + 'css/app.css',
+  BASE + 'js/utils.js',
+  BASE + 'js/toast.js',
+  BASE + 'js/api.js',
+  BASE + 'js/app.js',
+  BASE + 'js/pages/dashboard.js',
+  BASE + 'js/pages/income.js',
+  BASE + 'js/pages/expense.js',
+  BASE + 'js/pages/debt.js',
+  BASE + 'js/pages/history.js',
+  BASE + 'js/pages/report.js',
+  BASE + 'js/pages/account.js',
+  BASE + 'js/pages/auth.js',
+  BASE + 'js/pages/product.js',
+  BASE + 'icons/icon-192.png',
+  BASE + 'icons/icon-512.png',
 ];
 
 // ---- Install: pre-cache semua aset statis ----
 self.addEventListener('install', function(event) {
+  console.log('[SW] Installing, BASE =', BASE);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
         console.log('[SW] Pre-caching static assets');
-        return cache.addAll(STATIC_ASSETS).catch(function(err) {
-          console.warn('[SW] Some assets failed to pre-cache:', err);
-        });
+        // Cache satu per satu agar gagal satu tidak gagal semua
+        return Promise.all(
+          STATIC_ASSETS.map(function(url) {
+            return cache.add(url).catch(function(err) {
+              console.warn('[SW] Failed to cache:', url, err);
+            });
+          })
+        );
       })
       .then(function() {
-        return self.skipWaiting(); // Aktifkan SW baru segera
+        console.log('[SW] Install complete, skipping waiting');
+        return self.skipWaiting();
       })
   );
 });
@@ -60,7 +73,8 @@ self.addEventListener('activate', function(event) {
         );
       })
       .then(function() {
-        return self.clients.claim(); // Ambil alih semua tab
+        console.log('[SW] Activated, claiming clients');
+        return self.clients.claim();
       })
   );
 });
@@ -72,8 +86,9 @@ self.addEventListener('fetch', function(event) {
   // Skip non-GET
   if (event.request.method !== 'GET') return;
 
-  // Skip chrome-extension
+  // Skip chrome-extension, devtools, etc.
   if (url.startsWith('chrome-extension://')) return;
+  if (url.startsWith('devtools://')) return;
 
   // API Calls (Google Apps Script) → Network First, cache as fallback
   if (url.includes('script.google.com') || url.includes('script.googleusercontent.com')) {
@@ -82,12 +97,17 @@ self.addEventListener('fetch', function(event) {
   }
 
   // Fonts & external CDNs → Stale While Revalidate
-  if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com') || url.includes('cdn.tailwindcss.com')) {
+  if (
+    url.includes('fonts.googleapis.com') ||
+    url.includes('fonts.gstatic.com') ||
+    url.includes('unpkg.com') ||
+    url.includes('cdn.tailwindcss.com')
+  ) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
-  // Static assets → Cache First
+  // Static assets → Cache First dengan fallback ke offline.html saat navigasi
   event.respondWith(cacheFirst(event.request));
 });
 
@@ -97,8 +117,14 @@ function cacheFirst(request) {
   return caches.match(request).then(function(cached) {
     if (cached) return cached;
     return fetchAndCache(request).catch(function() {
+      // Jika navigasi dan offline, tampilkan halaman offline
       if (request.mode === 'navigate') {
-        return caches.match(OFFLINE_PAGE);
+        return caches.match(OFFLINE_PAGE).then(function(offlinePage) {
+          return offlinePage || new Response(
+            '<h1>Sedang Offline</h1><p>Buka kembali aplikasi saat ada koneksi internet.</p>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
+        });
       }
     });
   });
@@ -127,9 +153,11 @@ function staleWhileRevalidate(request) {
   return caches.open(CACHE_NAME).then(function(cache) {
     return cache.match(request).then(function(cached) {
       var fetchPromise = fetch(request).then(function(response) {
-        cache.put(request, response.clone());
+        if (response && response.status === 200) {
+          cache.put(request, response.clone());
+        }
         return response;
-      }).catch(function() {});
+      }).catch(function() { return cached; });
       return cached || fetchPromise;
     });
   });
