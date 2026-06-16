@@ -320,7 +320,7 @@ const ProductPage = {
       try {
         await Api.addProduct({ barcode, name, stock, purchase_price, selling_price, category });
         App.closeModal();
-        Toast.success(`✓ Produk ${name} berhasil ditambahkan`);
+        Toast.success(`Produk ${name} berhasil ditambahkan`);
         App.navigate('product');
       } catch (err) {
         Toast.error('Gagal menyimpan produk: ' + err.message);
@@ -445,7 +445,7 @@ const ProductPage = {
       try {
         await Api.updateProduct(id, { barcode, name, stock, purchase_price, selling_price, category });
         App.closeModal();
-        Toast.success(`✓ Produk ${name} berhasil diperbarui`);
+        Toast.success(`Produk ${name} berhasil diperbarui`);
         App.navigate('product');
       } catch (err) {
         Toast.error('Gagal memperbarui produk: ' + err.message);
@@ -458,7 +458,7 @@ const ProductPage = {
       try {
         await Api.deleteProduct(id);
         App.closeModal();
-        Toast.success(`✓ Produk ${name} telah dihapus`);
+        Toast.success(`Produk ${name} telah dihapus`);
         App.navigate('product');
       } catch (err) {
         Toast.error('Gagal menghapus produk: ' + err.message);

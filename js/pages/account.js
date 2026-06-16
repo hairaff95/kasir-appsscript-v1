@@ -393,7 +393,7 @@ const AccountPage = {
         </div>
 
         <div id="install-status" style="display:none;background:rgba(22,163,74,0.07);border:1.5px solid rgba(22,163,74,0.15);border-radius:16px;padding:14px;text-align:center">
-          <div style="font-size:13px;font-weight:700;color:var(--green-600)">✓ Aplikasi berhasil diinstall!</div>
+          <div style="font-size:13px;font-weight:700;color:var(--green-600)">Aplikasi berhasil diinstall!</div>
           <div style="font-size:12px;color:var(--on-surface-variant);margin-top:3px">Cek layar utama perangkat Anda</div>
         </div>
 
@@ -489,7 +489,7 @@ const AccountPage = {
       if (!name) { Toast.warning('Nama wajib diisi'); return; }
 
       this._saveProfile({ name, storeName: store || name + ' Store', email, phone });
-      Toast.success('✓ Profil berhasil diperbarui');
+      Toast.success('Profil berhasil diperbarui');
       this._go('main');
     });
   },

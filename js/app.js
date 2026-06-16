@@ -281,7 +281,7 @@ const App = {
     div.className = 'confirm-overlay';
     div.innerHTML = `
       <div class="confirm-box">
-        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-icon"><svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 4L44 40H4L24 4Z" fill="#FFA500" stroke="#E68A00" stroke-width="2"/><path d="M24 18V28" stroke="white" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="34" r="2" fill="white"/></svg></div>
         <div class="confirm-title">Konfirmasi</div>
         <div class="confirm-msg">${Utils.escHtml(msg)}</div>
         <div class="confirm-actions">

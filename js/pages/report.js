@@ -378,7 +378,7 @@ const ReportPage = {
         return;
       }
 
-      Toast.info(`⏳ Membuat laporan ${cfg.label} di Google Drive... (${email})`);
+      Toast.info(`Membuat laporan ${cfg.label} di Google Drive... (${email})`);
       try {
         const transactions = await Api.getTransactions(cfg.api);
         const res = await Api.saveReportToDrive(cfg.api, transactions, email);
@@ -386,7 +386,7 @@ const ReportPage = {
         const fileName = res.fileName || 'Laporan';
         const fileUrl  = res.fileUrl  || 'https://drive.google.com';
         Toast.success(
-          `✅ Laporan berhasil disimpan ke Google Drive!\n` +
+          `Laporan berhasil disimpan ke Google Drive!\n` +
           `File "${fileName}" dibagikan ke ${email}.\n` +
           `Cek folder "Shared with me" di Google Drive Anda.`
         );

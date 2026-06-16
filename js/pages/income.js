@@ -273,7 +273,7 @@ const IncomePage = {
 
       try {
         await Api.addTransaction({ type: 'income', amount, description: desc, category: cat, transaction_date: date });
-        Toast.success('✓ Pemasukan berhasil disimpan');
+        Toast.success('Pemasukan berhasil disimpan');
         App.navigate('dashboard');
       } catch (err) {
         Toast.error('Gagal menyimpan: ' + err.message);
@@ -389,7 +389,7 @@ const IncomePage = {
             }
           }
 
-          Toast.success('✓ Penjualan berhasil disimpan dan stok ter-update');
+          Toast.success('Penjualan berhasil disimpan dan stok ter-update');
           this._cart = [];
           App.navigate('dashboard');
         } catch (err) {

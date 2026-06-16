@@ -274,7 +274,7 @@ const DebtPage = {
       try {
         await Api.addDebt({ customer_name: name, phone_number: phone || null, initial_amount: amount, amount_total: amount, debt_date: date, description: notes });
         App.closeModal();
-        Toast.success(`✓ Kasbon ${name} berhasil ditambahkan`);
+        Toast.success(`Kasbon ${name} berhasil ditambahkan`);
         DebtPage._filter = 'active';
         App.navigate('debt');
       } catch (err) {
@@ -452,7 +452,7 @@ const DebtPage = {
       try {
         await Api.addDebtPayment({ debt_id: debtId, amount, payment_date: date });
         App.closeModal();
-        Toast.success('✓ Pembayaran berhasil dicatat!');
+        Toast.success('Pembayaran berhasil dicatat!');
         App.navigate('debt');
       } catch (err) {
         Toast.error('Gagal: ' + err.message);

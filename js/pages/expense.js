@@ -114,7 +114,7 @@ const ExpensePage = {
 
       try {
         await Api.addTransaction({ type: 'expense', amount, description: desc, category: cat, transaction_date: date });
-        Toast.success('✓ Pengeluaran berhasil disimpan');
+        Toast.success('Pengeluaran berhasil disimpan');
         App.navigate('dashboard');
       } catch (err) {
         Toast.error('Gagal menyimpan: ' + err.message);
