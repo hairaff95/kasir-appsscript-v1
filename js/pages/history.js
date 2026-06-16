@@ -11,6 +11,11 @@ const HistoryPage = {
     try {
       const data = await Api.getTransactions(this._period, this._type);
       container.innerHTML = this._html(data);
+      
+      // Mark as read when entering the History page
+      localStorage.removeItem('lm_has_unread_trx');
+      localStorage.setItem('lm_last_viewed_history', new Date().toISOString());
+      App.updateBellBadge();
     } catch (e) {
       container.innerHTML = `<div class="empty-state"><p>Gagal memuat: ${Utils.escHtml(e.message)}</p></div>`;
     }
@@ -71,9 +76,14 @@ const HistoryPage = {
     return `
       <div class="page-header">
         <div class="page-header-row">
-          <div>
-            <h1>Riwayat Transaksi</h1>
-            <div class="subtitle">${data.length} transaksi ditemukan</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button onclick="App.navigate('dashboard')" class="back-btn" style="border-radius:10px" title="Kembali ke Beranda">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div>
+              <h1>Riwayat Transaksi</h1>
+              <div class="subtitle">${data.length} transaksi ditemukan</div>
+            </div>
           </div>
         </div>
       </div>

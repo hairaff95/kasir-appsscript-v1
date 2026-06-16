@@ -7,10 +7,22 @@ const ReportPage = {
   async render(container) {
     container.innerHTML = this._skeleton();
     try {
-      const data = await Api.getReport(this._period);
-      container.innerHTML = this._html(data);
+      const trxFilter = {
+        daily: 'today',
+        weekly: 'week',
+        monthly: 'month'
+      }[this._period] || 'all';
+
+      const [data, transactions] = await Promise.all([
+        Api.getReport(this._period),
+        Api.getTransactions(trxFilter)
+      ]);
+
+      container.innerHTML = this._html(data, transactions);
+      App.updateBellBadge();
     } catch (e) {
-      container.innerHTML = `<div class="empty-state"><p>Gagal memuat laporan</p></div>`;
+      console.error(e);
+      container.innerHTML = `<div class="empty-state"><p>Gagal memuat laporan: ${Utils.escHtml(e.message)}</p></div>`;
     }
   },
 
@@ -27,7 +39,7 @@ const ReportPage = {
     `;
   },
 
-  _html(data) {
+  _html(data, transactions = []) {
     const p = this._period;
     const net = data.net_balance;
     const isPos = net >= 0;
@@ -65,7 +77,13 @@ const ReportPage = {
             <h1>Laporan</h1>
             <div class="subtitle">${label}</div>
           </div>
-          <span class="badge ${isPos ? 'badge-green' : 'badge-red'}">${isPos ? '&#8593; Untung' : '&#8595; Rugi'}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge ${isPos ? 'badge-green' : 'badge-red'}">${isPos ? '&#8593; Untung' : '&#8595; Rugi'}</span>
+            <button onclick="App.navigate('history')" class="back-btn" title="Histori Transaksi" style="border-radius:12px; position:relative;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="bell-badge" style="display:none;"></span>
+            </button>
+          </div>
         </div>
       </div>
       <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
@@ -155,6 +173,54 @@ const ReportPage = {
             </div>
           </div>
         </div>
+
+        <!-- ====== DETAIL KEUNTUNGAN PER PRODUK ====== -->
+        ${(() => {
+          const salesBreakdown = this._parseSalesProfit(transactions);
+          const totalSalesProfit = salesBreakdown.reduce((sum, item) => sum + item.totalProfit, 0);
+
+          const breakdownListHtml = salesBreakdown.length === 0
+            ? `<p style="font-size:13px;color:var(--gray-400);text-align:center;padding:16px 0">Belum ada data penjualan produk</p>`
+            : salesBreakdown.map(item => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(196,197,217,0.12)">
+                  <div style="min-width:0; flex:1; padding-right:8px;">
+                    <div style="font-size:13.5px; font-weight:700; color:var(--on-surface); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${Utils.escHtml(item.name)}</div>
+                    <div style="font-size:11px; color:var(--on-surface-variant); opacity:0.75; margin-top:2px;">
+                      x${item.qty} &bull; Beli: ${Utils.formatRupiah(item.buy)} &bull; Jual: ${Utils.formatRupiah(item.sell)}
+                    </div>
+                  </div>
+                  <div style="text-align:right; flex-shrink:0;">
+                    <div style="font-size:13.5px; font-weight:800; color:var(--green-600);">+${Utils.formatRupiah(item.totalProfit)}</div>
+                    <div style="font-size:10px; color:var(--on-surface-variant); opacity:0.6; margin-top:1px;">Margin: ${item.buy > 0 ? Math.round((item.sell - item.buy) / item.buy * 100) : 0}%</div>
+                  </div>
+                </div>
+              `).join('');
+
+          return `
+            <div style="background:var(--white);border:1px solid rgba(196,197,217,0.22);border-radius:24px;padding:18px;box-shadow:var(--shadow-xs)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="width:36px;height:36px;background:rgba(22,163,74,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-600)" stroke-width="2">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--on-surface)">Detail Keuntungan per Produk</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);opacity:0.65">Breakdown laba bersih per item</div>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:10px;font-weight:600;color:var(--on-surface-variant);opacity:0.6">Total Profit</div>
+                  <div style="font-size:14px;font-weight:800;color:var(--green-600)">${Utils.formatRupiah(totalSalesProfit)}</div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0;max-height:280px;overflow-y:auto;padding-right:4px;">
+                ${breakdownListHtml}
+              </div>
+            </div>
+          `;
+        })()}
 
         <!-- ====== DOWNLOAD LAPORAN SECTION ====== -->
         <div style="background:var(--white);border:1px solid rgba(196,197,217,0.22);border-radius:24px;padding:18px;box-shadow:var(--shadow-xs)">
@@ -379,6 +445,46 @@ const ReportPage = {
         URL.revokeObjectURL(url);
       }, 250);
     });
+  },
+
+  _parseSalesProfit(transactions) {
+    const productsMap = {};
+
+    (transactions || []).forEach(t => {
+      if (t.type !== 'income' || !t.description || !t.description.startsWith('Jual: ')) return;
+
+      const desc = t.description.substring(6); // remove 'Jual: '
+      const regex = /(.*?)\s*\(x(\d+)\s*\|\s*Beli:(\d+)\s*Jual:(\d+)\)/g;
+      let match;
+      while ((match = regex.exec(desc)) !== null) {
+        const name = match[1].replace(/^,\s*/, '').trim();
+        const qty = parseInt(match[2], 10);
+        const buy = parseInt(match[3], 10);
+        const sell = parseInt(match[4], 10);
+        
+        if (name && !isNaN(qty) && !isNaN(buy) && !isNaN(sell)) {
+          const key = `${name}_${buy}_${sell}`;
+          if (!productsMap[key]) {
+            productsMap[key] = {
+              name,
+              buy,
+              sell,
+              qty: 0,
+              totalCost: 0,
+              totalRevenue: 0,
+              totalProfit: 0
+            };
+          }
+          const item = productsMap[key];
+          item.qty += qty;
+          item.totalCost += (buy * qty);
+          item.totalRevenue += (sell * qty);
+          item.totalProfit += ((sell - buy) * qty);
+        }
+      }
+    });
+
+    return Object.values(productsMap).sort((a, b) => b.totalProfit - a.totalProfit);
   },
 };
 

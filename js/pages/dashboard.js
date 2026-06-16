@@ -12,6 +12,7 @@ const DashboardPage = {
         Api.getTransactions('today'),
       ]);
       container.innerHTML = this._html(summary, recentTrx);
+      App.updateBellBadge();
     } catch (e) {
       container.innerHTML = this._errorHtml(e.message);
     }
@@ -66,6 +67,10 @@ const DashboardPage = {
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             ${DEMO_MODE ? `<span class="badge badge-orange">DEMO</span>` : ''}
+            <button onclick="App.navigate('history')" class="back-btn" title="Histori Transaksi" style="border-radius:12px; position:relative;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="bell-badge" style="display:none;"></span>
+            </button>
             <button onclick="App.navigate('report')" class="back-btn" title="Laporan" style="border-radius:12px">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             </button>
@@ -122,14 +127,18 @@ const DashboardPage = {
         </div>
 
         <!-- Action Buttons -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <button class="action-btn-income" onclick="App.navigate('income')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
-            <span style="font-size:15px;font-weight:700">Masuk</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <button class="action-btn-income" onclick="App.navigate('income'); setTimeout(() => IncomePage.setMode('manual'), 50);" style="height:56px; border-radius:18px; font-size:14px; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+            <span style="font-size:13px;font-weight:700">Masuk</span>
           </button>
-          <button class="action-btn-expense" onclick="App.navigate('expense')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 19V5M19 12l-7 7-7-7"/></svg>
-            <span style="font-size:15px;font-weight:700">Keluar</span>
+          <button class="action-btn-sale" onclick="App.navigate('income'); setTimeout(() => IncomePage.setMode('product'), 50);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            <span style="font-size:13px;font-weight:700">Jual</span>
+          </button>
+          <button class="action-btn-expense" onclick="App.navigate('expense')" style="height:56px; border-radius:18px; font-size:14px; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 19V5M19 12l-7 7-7-7"/></svg>
+            <span style="font-size:13px;font-weight:700">Keluar</span>
           </button>
         </div>
 

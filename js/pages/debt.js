@@ -10,6 +10,7 @@ const DebtPage = {
     try {
       const debts = await Api.getDebts();
       container.innerHTML = this._html(debts);
+      App.updateBellBadge();
     } catch (e) {
       container.innerHTML = `<div class="empty-state"><p>Gagal memuat: ${Utils.escHtml(e.message)}</p></div>`;
     }
@@ -56,10 +57,16 @@ const DebtPage = {
             <h1>Kasbon Pelanggan</h1>
             <div class="subtitle">${active.length} aktif &bull; Total ${Utils.formatRupiah(totalRem)}</div>
           </div>
-          <button onclick="DebtPage._showAddModal()" class="btn btn-primary btn-sm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
-            Kasbon
-          </button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onclick="App.navigate('history')" class="back-btn" title="Histori Transaksi" style="border-radius:12px; position:relative;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="bell-badge" style="display:none;"></span>
+            </button>
+            <button onclick="DebtPage._showAddModal()" class="btn btn-primary btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+              Kasbon
+            </button>
+          </div>
         </div>
       </div>
 

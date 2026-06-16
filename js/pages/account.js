@@ -17,10 +17,14 @@ const AccountPage = {
     } else if (this._view === 'install-guide') {
       container.innerHTML = this._installGuideHtml();
       this._bindInstall(container);
+    } else if (this._view === 'invoice') {
+      container.innerHTML = this._invoiceHtml();
+      this._bindInvoice(container);
     } else {
       container.innerHTML = this._html();
       this._bind(container);
     }
+    App.updateBellBadge();
   },
 
   /* ============================================================
@@ -34,7 +38,13 @@ const AccountPage = {
     return `
       <!-- Page Header -->
       <div class="page-header">
-        <h1>Akun & Pengaturan</h1>
+        <div class="page-header-row">
+          <h1>Akun & Pengaturan</h1>
+          <button onclick="App.navigate('history')" class="back-btn" title="Histori Transaksi" style="border-radius:12px; position:relative;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="bell-badge" style="display:none;"></span>
+          </button>
+        </div>
       </div>
 
       <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
@@ -73,6 +83,7 @@ const AccountPage = {
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--on-surface-variant);opacity:0.55;margin-bottom:8px;padding-left:2px">Pengaturan Akun</div>
           <div style="background:var(--white);border:1px solid rgba(196,197,217,0.22);border-radius:20px;overflow:hidden;box-shadow:var(--shadow-xs)">
             ${this._menuRow('person', 'Informasi Toko', 'Nama, email, dan detail toko', "AccountPage._go('store-info')", false)}
+            ${this._menuRow('invoice', 'Buat Invoice', 'Buat dan cetak invoice profesional', "AccountPage._go('invoice')", false, 'primary')}
             ${this._menuRow('lock_reset', 'Reset Data Demo', 'Kembalikan data ke kondisi awal', "AccountPage._resetData()", false, 'warning')}
             ${this._menuRow('sync', 'Hubungkan Google Sheets', 'Setup backend data produksi', "AccountPage._go('store-info')", false)}
             ${this._menuRow('log_out', 'Keluar (Logout)', 'Keluar dari sesi akun Anda', "AccountPage._logout()", true, 'warning')}
@@ -118,6 +129,7 @@ const AccountPage = {
 
     const iconMap = {
       person: `<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+      invoice: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>`,
       lock_reset: `<path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/>`,
       sync: `<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>`,
       android: `<path d="M5 16a7 7 0 1114 0v1a2 2 0 01-2 2H7a2 2 0 01-2-2v-1z"/><line x1="12" y1="2" x2="12" y2="5"/><circle cx="8.5" cy="12" r="1"/><circle cx="15.5" cy="12" r="1"/><path d="M7 5.5L5 3"/><path d="M17 5.5l2-2.5"/>`,
@@ -625,6 +637,562 @@ const AccountPage = {
       notifications: `<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>`,
       storage: `<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>`,
     }[name] || '';
+  },
+
+  _invoiceHtml() {
+    const profile = this._getProfile();
+    const today = new Date().toISOString().slice(0, 10);
+    const fourteenDaysLater = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      return d.toISOString().slice(0, 10);
+    })();
+    const randNum = String(Math.floor(Math.random() * 90000) + 10000);
+    const invoiceNumDefault = `#INV/2026/${randNum}`;
+
+    return `
+      <!-- Header with back -->
+      <div style="background:linear-gradient(160deg,var(--primary-50) 0%,var(--white) 60%);padding:24px 20px 24px;position:relative">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button onclick="AccountPage._go('main')" style="width:36px;height:36px;background:white;border:1.5px solid var(--outline-variant);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--on-surface)" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--on-surface)">Buat Invoice</h2>
+        </div>
+      </div>
+
+      <div style="padding: 0 20px 40px; display:flex; flex-direction:column; gap:20px;">
+        <form id="invoice-generator-form" style="display:flex; flex-direction:column; gap:20px;">
+          
+          <!-- Pengirim (Profil Anda) -->
+          <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--primary-600); margin-bottom:4px;">Profil Anda (Pengirim)</div>
+            <div class="form-group">
+              <label class="form-label">Nama Pengirim / Toko <span class="required">*</span></label>
+              <input type="text" id="inv-sender-name" class="form-input" value="${Utils.escHtml(profile.name)} - @${Utils.escHtml(profile.storeName.toLowerCase())}" required placeholder="Contoh: Andre The Guy - @andreqve" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deskripsi / Jabatan <span class="required">*</span></label>
+              <input type="text" id="inv-sender-sub" class="form-input" value="Digital Creator" required placeholder="Contoh: Digital Creator" />
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Phone <span class="required">*</span></label>
+                <input type="text" id="inv-sender-phone" class="form-input" value="${Utils.escHtml(profile.phone || '081234567890')}" required placeholder="Contoh: 081234567890" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email <span class="required">*</span></label>
+                <input type="email" id="inv-sender-email" class="form-input" value="${Utils.escHtml(profile.email || 'hi@yourdomain.com')}" required placeholder="Contoh: hi@yourdomain.com" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Penerima & Meta -->
+          <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--primary-600); margin-bottom:4px;">Detail Invoice & Penerima</div>
+            
+            <div class="form-group">
+              <label class="form-label">Nomor Invoice <span class="required">*</span></label>
+              <input type="text" id="inv-number" class="form-input" value="${invoiceNumDefault}" required placeholder="Contoh: #INV/XXX/XXX" />
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Tanggal Invoice <span class="required">*</span></label>
+                <input type="date" id="inv-date" class="form-input" value="${today}" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jatuh Tempo <span class="required">*</span></label>
+                <input type="date" id="inv-due-date" class="form-input" value="${fourteenDaysLater}" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nama Perusahaan / Klien <span class="required">*</span></label>
+              <input type="text" id="inv-client-name" class="form-input" value="Company Name" required placeholder="Nama Klien" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Alamat Lengkap Klien <span class="required">*</span></label>
+              <textarea id="inv-client-address" class="form-input" style="height:80px; padding:10px; font-family:inherit; resize:none;" required placeholder="Alamat lengkap...">Company detail address, Jl. Sini Senang Sana Senang,&#10;Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11470</textarea>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--primary-600);">Daftar Barang (Items)</div>
+              <button type="button" id="add-invoice-item" class="btn btn-outline btn-sm" style="margin:0; border-radius:10px; font-size:12px; padding:6px 12px;">+ Tambah Barang</button>
+            </div>
+            
+            <div id="invoice-items-list" style="display:flex; flex-direction:column; gap:10px;">
+              <!-- Dynamic Rows populated in bind -->
+            </div>
+
+            <!-- Totals breakdown -->
+            <div style="border-top:1.5px dashed var(--outline-variant); padding-top:12px; margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--on-surface-variant);">
+                <span>Sub Total:</span>
+                <span id="invoice-subtotal-text" style="font-weight:700; color:var(--on-surface);">Rp 0</span>
+              </div>
+              <div class="form-group" style="margin: 0; max-width: 200px; align-self: flex-end; width:100%;">
+                <label class="form-label" style="font-size:11px;">Deduction (Potongan)</label>
+                <div style="display:flex;align-items:center;background:var(--surface-container-low);border:1.5px solid var(--outline-variant);border-radius:var(--radius-xl); overflow:hidden;">
+                  <span style="padding:0 8px;font-weight:600;color:var(--outline);font-size:12px;">Rp</span>
+                  <input type="text" id="invoice-deduction" style="flex:1;border:none;background:transparent;height:38px;font-size:12px;font-weight:700;outline:none;font-family:inherit;color:var(--on-surface); text-align:right;" placeholder="0" value="0" />
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:800; border-top:1px solid rgba(196,197,217,0.2); padding-top:8px;">
+                <span>Grand Total:</span>
+                <span id="invoice-grandtotal-text" style="color:var(--green-600);">Rp 0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment details & Notes -->
+          <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--primary-600); margin-bottom:4px;">Metode Pembayaran & Catatan</div>
+            <div class="form-group">
+              <label class="form-label">Bank Penerima <span class="required">*</span></label>
+              <input type="text" id="inv-bank-name" class="form-input" value="Bank Central Asia" required />
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Nomor Rekening <span class="required">*</span></label>
+                <input type="text" id="inv-acc-number" class="form-input" value="0123121121" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Atas Nama Rekening <span class="required">*</span></label>
+                <input type="text" id="inv-acc-name" class="form-input" value="${Utils.escHtml(profile.name.split(' - ')[0])}" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Catatan Tambahan (Notes)</label>
+              <textarea id="inv-notes" class="form-input" style="height:60px; padding:10px; font-family:inherit; resize:none;">Harap lakukan pembayaran sebelum tanggal jatuh tempo.</textarea>
+            </div>
+          </div>
+
+          <!-- Tanda Tangan Canvas -->
+          <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--primary-600);">Prepared by (Tanda Tangan)</div>
+              <button type="button" id="clear-signature" class="btn btn-ghost btn-sm" style="margin:0; color:var(--red-600); font-size:12px; padding:4px 10px;">Hapus</button>
+            </div>
+            <div style="display:flex; justify-content:center; margin-top:4px;">
+              <canvas id="signature-canvas" width="320" height="160" style="border: 1.5px dashed var(--outline-variant); border-radius: 16px; cursor: crosshair; background: var(--surface-container-lowest); max-width: 100%; box-shadow: var(--shadow-xs);"></canvas>
+            </div>
+            <p style="font-size:11px; color:var(--on-surface-variant); opacity:0.6; text-align:center; margin:2px 0 0 0;">Coret atau gambar tanda tangan Anda di atas area ini</p>
+          </div>
+
+          <!-- Submit Aksi -->
+          <div style="margin-top:8px;">
+            <button type="submit" class="btn-cta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Cetak &amp; Unduh Invoice
+            </button>
+            <button type="button" onclick="AccountPage._go('main')" class="btn btn-ghost btn-full" style="margin-top:4px;">Batal</button>
+          </div>
+
+        </form>
+      </div>
+    `;
+  },
+
+  _bindInvoice(container) {
+    const canvas = container.querySelector('#signature-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    let drawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    const getPos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    };
+
+    const startDraw = (e) => {
+      drawing = true;
+      const pos = getPos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+      if (e.cancelable) e.preventDefault();
+    };
+
+    const draw = (e) => {
+      if (!drawing) return;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      lastX = pos.x;
+      lastY = pos.y;
+      if (e.cancelable) e.preventDefault();
+    };
+
+    const stopDraw = () => {
+      drawing = false;
+    };
+
+    // Mouse events
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseleave', stopDraw);
+
+    // Touch events
+    canvas.addEventListener('touchstart', startDraw);
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDraw);
+
+    // Clear signature button
+    const clearBtn = container.querySelector('#clear-signature');
+    clearBtn?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    // Dynamic item list logic
+    const itemsContainer = container.querySelector('#invoice-items-list');
+    const addItemBtn = container.querySelector('#add-invoice-item');
+
+    const recalculateTotals = () => {
+      let subtotal = 0;
+      container.querySelectorAll('.invoice-item-row').forEach(row => {
+        const qty = parseInt(row.querySelector('.item-qty').value || 0, 10);
+        const rate = parseInt(row.querySelector('.item-rate').dataset.rawValue || row.querySelector('.item-rate').value.replace(/[^0-9]/g, '') || 0, 10);
+        const rowTotal = qty * rate;
+        row.querySelector('.item-total-text').textContent = Utils.formatRupiah(rowTotal);
+        subtotal += rowTotal;
+      });
+
+      const deduction = parseInt(container.querySelector('#invoice-deduction').dataset.rawValue || container.querySelector('#invoice-deduction').value.replace(/[^0-9]/g, '') || 0, 10);
+      const grandtotal = Math.max(0, subtotal - deduction);
+
+      container.querySelector('#invoice-subtotal-text').textContent = Utils.formatRupiah(subtotal);
+      container.querySelector('#invoice-grandtotal-text').textContent = Utils.formatRupiah(grandtotal);
+    };
+
+    const createItemRow = (name = '', qty = 1, rate = 0) => {
+      const row = document.createElement('div');
+      row.className = 'invoice-item-row';
+      row.style = 'display:grid; grid-template-columns: 2fr 1fr 1.5fr 1fr 40px; gap:8px; align-items:center; border-bottom:1px solid rgba(196,197,217,0.12); padding-bottom:8px;';
+      row.innerHTML = `
+        <input type="text" class="form-input item-name" placeholder="Barang" value="${Utils.escHtml(name)}" required />
+        <input type="number" class="form-input item-qty" placeholder="Qty" value="${qty}" min="1" required style="padding:8px 6px; text-align:center;" />
+        <div style="display:flex;align-items:center;background:var(--surface-container-low);border:1.5px solid var(--outline-variant);border-radius:var(--radius-xl); overflow:hidden;">
+          <span style="padding:0 6px;font-weight:600;color:var(--outline);font-size:12px;">Rp</span>
+          <input type="text" class="item-rate" style="flex:1;border:none;background:transparent;height:38px;font-size:12px;font-weight:700;outline:none;font-family:inherit;color:var(--on-surface);width:100%;" placeholder="0" value="${rate.toLocaleString('id-ID')}" data-raw-value="${rate}" required />
+        </div>
+        <div class="item-total-text" style="font-size:12.5px; font-weight:700; color:var(--on-surface); text-align:right;">Rp 0</div>
+        <button type="button" class="btn-delete-row" style="background:none; border:none; color:var(--red-600); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+        </button>
+      `;
+
+      const qtyInput = row.querySelector('.item-qty');
+      const rateInput = row.querySelector('.item-rate');
+      
+      qtyInput.addEventListener('input', recalculateTotals);
+      rateInput.addEventListener('input', () => {
+        Utils.formatInputRupiah(rateInput);
+        recalculateTotals();
+      });
+
+      row.querySelector('.btn-delete-row').addEventListener('click', () => {
+        row.remove();
+        recalculateTotals();
+      });
+
+      itemsContainer.appendChild(row);
+      recalculateTotals();
+    };
+
+    // Prefill 3 sample items matching the screenshot
+    createItemRow('Items 1', 1, 150000);
+    createItemRow('Items 2', 2, 250000);
+    createItemRow('Items 3', 3, 350000);
+
+    addItemBtn.addEventListener('click', () => {
+      createItemRow('', 1, 0);
+    });
+
+    const deductionInput = container.querySelector('#invoice-deduction');
+    deductionInput?.addEventListener('input', () => {
+      Utils.formatInputRupiah(deductionInput);
+      recalculateTotals();
+    });
+
+    container.querySelector('#invoice-generator-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const profileInfo = {
+        name: container.querySelector('#inv-sender-name').value.trim(),
+        subtitle: container.querySelector('#inv-sender-sub').value.trim(),
+        phone: container.querySelector('#inv-sender-phone').value.trim(),
+        email: container.querySelector('#inv-sender-email').value.trim()
+      };
+
+      const meta = {
+        number: container.querySelector('#inv-number').value.trim(),
+        date: container.querySelector('#inv-date').value,
+        dueDate: container.querySelector('#inv-due-date').value
+      };
+
+      const client = {
+        name: container.querySelector('#inv-client-name').value.trim(),
+        address: container.querySelector('#inv-client-address').value.trim()
+      };
+
+      const payment = {
+        bankName: container.querySelector('#inv-bank-name').value.trim(),
+        accNumber: container.querySelector('#inv-acc-number').value.trim(),
+        accName: container.querySelector('#inv-acc-name').value.trim(),
+        notes: container.querySelector('#inv-notes').value.trim()
+      };
+
+      const items = [];
+      container.querySelectorAll('.invoice-item-row').forEach(row => {
+        const name = row.querySelector('.item-name').value.trim();
+        const qty = parseInt(row.querySelector('.item-qty').value || 0, 10);
+        const rate = parseInt(row.querySelector('.item-rate').dataset.rawValue || row.querySelector('.item-rate').value.replace(/[^0-9]/g, '') || 0, 10);
+        if (name && qty > 0) {
+          items.push({ name, qty, rate, total: qty * rate });
+        }
+      });
+
+      if (items.length === 0) {
+        Toast.warning('Tambahkan minimal 1 barang');
+        return;
+      }
+
+      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+      const deduction = parseInt(deductionInput.dataset.rawValue || deductionInput.value.replace(/[^0-9]/g, '') || 0, 10);
+      const grandtotal = Math.max(0, subtotal - deduction);
+
+      const data = {
+        profile: profileInfo,
+        meta,
+        client,
+        payment,
+        items,
+        subtotal,
+        deduction,
+        grandtotal
+      };
+
+      // Get signature data URL
+      let signatureDataUrl = '';
+      const blank = document.createElement('canvas');
+      blank.width = canvas.width;
+      blank.height = canvas.height;
+      if (canvas.toDataURL() !== blank.toDataURL()) {
+        signatureDataUrl = canvas.toDataURL();
+      }
+
+      this._printInvoice(data, signatureDataUrl);
+    });
+  },
+
+  _printInvoice(data, signatureDataUrl) {
+    const style = document.createElement('style');
+    style.id = 'invoice-print-styles';
+    style.innerHTML = `
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #invoice-print-container, #invoice-print-container * {
+          visibility: visible;
+        }
+        #invoice-print-container {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          background: white;
+          color: black;
+          padding: 0;
+          margin: 0;
+        }
+        @page {
+          size: A4;
+          margin: 20mm;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    const div = document.createElement('div');
+    div.id = 'invoice-print-container';
+    div.innerHTML = this._generateInvoicePrintHtml(data, signatureDataUrl);
+    document.body.appendChild(div);
+
+    window.print();
+
+    setTimeout(() => {
+      style.remove();
+      div.remove();
+    }, 500);
+  },
+
+  _generateInvoicePrintHtml(data, signatureDataUrl) {
+    const formattedDate = (dStr) => {
+      if (!dStr) return '';
+      const date = new Date(dStr);
+      if (isNaN(date.getTime())) return dStr;
+      return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
+    const itemsHtml = data.items.map(item => `
+      <tr>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: 13.5px;">${Utils.escHtml(item.name)}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 13.5px;">${item.qty}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13.5px;">${Utils.formatRupiah(item.rate)}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13.5px; font-weight: 600;">${Utils.formatRupiah(item.total)}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <div style="font-family: 'Inter', 'Segoe UI', Arial, sans-serif; color: #1f2937; padding: 40px; max-width: 800px; margin: 0 auto; background: white; box-sizing: border-box;">
+        
+        <!-- Header Row -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+          <div>
+            <h1 style="font-size: 20px; font-weight: 800; margin: 0; color: #111827; font-family: 'Plus Jakarta Sans', sans-serif;">${Utils.escHtml(data.profile.name)}</h1>
+            <p style="font-size: 13px; color: #4b5563; margin: 4px 0 16px 0;">${Utils.escHtml(data.profile.subtitle)}</p>
+            <table style="font-size: 13px; color: #1f2937; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 2px 8px 2px 0; color: #4b5563; width: 60px;">Phone</td>
+                <td style="padding: 2px 4px;">:</td>
+                <td style="padding: 2px 0;">${Utils.escHtml(data.profile.phone)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 2px 8px 2px 0; color: #4b5563;">Email</td>
+                <td style="padding: 2px 4px;">:</td>
+                <td style="padding: 2px 0;">${Utils.escHtml(data.profile.email)}</td>
+              </tr>
+            </table>
+          </div>
+          <div style="text-align: right;">
+            <h2 style="font-size: 40px; font-weight: 900; margin: 0; color: #111827; letter-spacing: -0.03em;">INVOICE</h2>
+            <p style="font-size: 15px; font-weight: 600; color: #4b5563; margin: 12px 0 0 0;">${Utils.escHtml(data.meta.number)}</p>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1.5px solid #e5e7eb; margin: 24px 0;" />
+
+        <!-- Bill To & Meta Row -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;">
+          <div style="max-width: 50%;">
+            <p style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #4b5563; margin: 0 0 8px 0; letter-spacing: 0.05em;">Bill to:</p>
+            <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0; color: #111827;">${Utils.escHtml(data.client.name)}</h3>
+            <p style="font-size: 13px; color: #4b5563; margin: 0; line-height: 1.5; white-space: pre-wrap;">${Utils.escHtml(data.client.address)}</p>
+          </div>
+          <div style="text-align: right; min-width: 250px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+              <tr>
+                <td style="padding: 4px 0; text-align: left; color: #4b5563;">Date:</td>
+                <td style="padding: 4px 0; text-align: right; font-weight: 500;">${formattedDate(data.meta.date)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; text-align: left; color: #4b5563;">Due date:</td>
+                <td style="padding: 4px 0; text-align: right; font-weight: 500;">${formattedDate(data.meta.dueDate)}</td>
+              </tr>
+              <tr style="border-top: 1px solid #e5e7eb;">
+                <td style="padding: 12px 0 4px 0; text-align: left; font-weight: 700; font-size: 14px;">Balance Due:</td>
+                <td style="padding: 12px 0 4px 0; text-align: right; font-weight: 800; font-size: 16px; color: #111827;">${Utils.formatRupiah(data.grandtotal)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <thead>
+            <tr style="background: #e5e7eb;">
+              <th style="padding: 10px; text-align: left; font-size: 13px; font-weight: 700; color: #374151; width: 45%; border-top-left-radius: 4px; border-bottom-left-radius: 4px;">Items</th>
+              <th style="padding: 10px; text-align: center; font-size: 13px; font-weight: 700; color: #374151; width: 15%;">Quantity</th>
+              <th style="padding: 10px; text-align: right; font-size: 13px; font-weight: 700; color: #374151; width: 20%;">Rate</th>
+              <th style="padding: 10px; text-align: right; font-size: 13px; font-weight: 700; color: #374151; width: 20%; border-top-right-radius: 4px; border-bottom-right-radius: 4px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <!-- Summary Totals Section -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 40px;">
+          <table style="width: 300px; border-collapse: collapse; font-size: 13.5px;">
+            <tr>
+              <td style="padding: 6px 0; text-align: left; color: #4b5563;">Sub Total</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 600;">${Utils.formatRupiah(data.subtotal)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; text-align: left; color: #4b5563;">Deduction</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #dc2626;">-${Utils.formatRupiah(data.deduction)}</td>
+            </tr>
+            <tr style="border-top: 1.5px solid #111827;">
+              <td style="padding: 8px 0; text-align: left; font-weight: 700; font-size: 14px;">Grand Total</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: 800; font-size: 16px; color: #111827;">${Utils.formatRupiah(data.grandtotal)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Footer terms & Signature -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 60px; page-break-inside: avoid;">
+          <div>
+            <h4 style="font-size: 13px; font-weight: 700; margin: 0 0 8px 0; color: #111827;">Payment Terms</h4>
+            <table style="font-size: 12.5px; color: #4b5563; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 2px 8px 2px 0;">Paid to</td>
+                <td style="padding: 2px 4px;">:</td>
+                <td style="padding: 2px 0; font-weight: 500; color: #1f2937;">${Utils.escHtml(data.payment.accName)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 2px 8px 2px 0;">Bank Name</td>
+                <td style="padding: 2px 4px;">:</td>
+                <td style="padding: 2px 0; font-weight: 500; color: #1f2937;">${Utils.escHtml(data.payment.bankName)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 2px 8px 2px 0;">Acc. Number</td>
+                <td style="padding: 2px 4px;">:</td>
+                <td style="padding: 2px 0; font-weight: 500; color: #1f2937;">${Utils.escHtml(data.payment.accNumber)}</td>
+              </tr>
+            </table>
+            ${data.payment.notes ? `
+              <h4 style="font-size: 13px; font-weight: 700; margin: 16px 0 6px 0; color: #111827;">Notes</h4>
+              <p style="font-size: 12px; color: #4b5563; margin: 0; white-space: pre-wrap; line-height: 1.5; max-width: 400px;">${Utils.escHtml(data.payment.notes)}</p>
+            ` : ''}
+          </div>
+          
+          <div style="text-align: center; min-width: 150px;">
+            <p style="font-size: 13px; font-weight: 700; color: #111827; margin: 0 0 10px 0;">Prepared by</p>
+            <div style="height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+              ${signatureDataUrl ? `
+                <img src="${signatureDataUrl}" style="max-height: 80px; max-width: 150px; object-fit: contain;" alt="Signature" />
+              ` : `
+                <div style="width: 100px; border-bottom: 1.5px dashed #d1d5db; height: 40px;"></div>
+              `}
+            </div>
+            <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 6px;">${Utils.escHtml(data.profile.name.split(' - ')[0])}</p>
+          </div>
+        </div>
+
+      </div>
+    `;
   },
 };
 

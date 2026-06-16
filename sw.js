@@ -3,7 +3,7 @@
  * Cache First untuk aset statis, Network First untuk API
  */
 
-const CACHE_NAME    = 'kasir-mini-v5';
+const CACHE_NAME    = 'kasir-mini-v6';
 const OFFLINE_PAGE  = '/offline.html';
 
 const STATIC_ASSETS = [

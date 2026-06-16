@@ -11,6 +11,7 @@ const SHEET_DEBTS          = 'CustomerDebts';
 const SHEET_PAYMENTS       = 'DebtPayments';
 const SHEET_USERS          = 'Users';
 const SHEET_CONFIG         = 'Config';
+const SHEET_PRODUCTS       = 'Products';
 
 const HEADERS = {
   Transactions:  ['id','store_id','type','amount','description','category','transaction_date','created_at'],
@@ -18,6 +19,7 @@ const HEADERS = {
   DebtPayments:  ['id','debt_id','amount','payment_date','note','created_at'],
   Users:         ['id','name','email','password_hash','store_id','created_at'],
   Config:        ['key','value'],
+  Products:      ['id','store_id','barcode','name','stock','purchase_price','selling_price','category','created_at'],
 };
 
 // ========== CORS & RESPONSE ==========
@@ -182,6 +184,7 @@ function doGet(e) {
     if (action === 'getDebts')        return handleGetDebts(params);
     if (action === 'getDebtDetail')   return handleGetDebtDetail(params);
     if (action === 'getReport')       return handleGetReport(params);
+    if (action === 'getProducts')     return handleGetProducts(params);
     if (action === 'ping')            return ok({ message: 'Kasir Mini API OK', time: new Date().toISOString() });
 
     return fail('Unknown action: ' + action);
@@ -207,6 +210,9 @@ function doPost(e) {
     if (action === 'deleteDebt')      return handleDeleteDebt(body);
     if (action === 'login')           return handleLogin(body);
     if (action === 'register')        return handleRegister(body);
+    if (action === 'addProduct')      return handleAddProduct(body);
+    if (action === 'updateProduct')   return handleUpdateProduct(body);
+    if (action === 'deleteProduct')   return handleDeleteProduct(body);
 
     return fail('Unknown action: ' + action);
   } catch (ex) {
@@ -519,6 +525,57 @@ function handleRegister(body) {
   appendRow(SHEET_USERS, row);
 
   return ok({ id: id, name: body.name, email: body.email, store_id: storeId });
+}
+
+// ========== PRODUCT HANDLERS ==========
+
+function handleGetProducts(params) {
+  var storeId = params.store_id || '';
+  var rows = getSheetData(SHEET_PRODUCTS);
+  if (storeId) rows = rows.filter(function(r) { return String(r.store_id) === String(storeId); });
+  rows.sort(function(a,b) { return new Date(b.created_at) - new Date(a.created_at); });
+  return ok(rows);
+}
+
+function handleAddProduct(body) {
+  if (!body.name) return fail('name diperlukan');
+  var id = generateId('PROD');
+  var now = new Date().toISOString();
+  var row = {
+    id: id,
+    store_id: body.store_id || 'default',
+    barcode: body.barcode || '',
+    name: body.name,
+    stock: Number(body.stock || 0),
+    purchase_price: Number(body.purchase_price || 0),
+    selling_price: Number(body.selling_price || 0),
+    category: body.category || '',
+    created_at: now
+  };
+  appendRow(SHEET_PRODUCTS, row);
+  return ok(row);
+}
+
+function handleUpdateProduct(body) {
+  if (!body.id) return fail('id diperlukan');
+  var updateData = {
+    barcode: body.barcode || '',
+    name: body.name || '',
+    stock: Number(body.stock || 0),
+    purchase_price: Number(body.purchase_price || 0),
+    selling_price: Number(body.selling_price || 0),
+    category: body.category || ''
+  };
+  var updated = updateRow(SHEET_PRODUCTS, body.id, updateData);
+  if (!updated) return fail('Produk tidak ditemukan');
+  return ok({ id: body.id, updated: updateData });
+}
+
+function handleDeleteProduct(body) {
+  if (!body.id) return fail('id diperlukan');
+  var deleted = deleteRow(SHEET_PRODUCTS, body.id);
+  if (!deleted) return fail('Produk tidak ditemukan');
+  return ok({ deleted: body.id });
 }
 
 /**

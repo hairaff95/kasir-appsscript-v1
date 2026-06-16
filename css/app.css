@@ -185,19 +185,16 @@ body {
 
 #bottom-nav {
   position: fixed;
-  bottom: var(--nav-float-gap);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(calc(100% - 32px), 480px);
-  background: rgba(255, 255, 255, 0.97);
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-radius: 32px;
-  box-shadow:
-    0 8px 32px rgba(16, 74, 240, 0.14),
-    0 2px 8px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255,255,255,0.8);
-  border: 1.5px solid rgba(196, 197, 217, 0.30);
+  border-radius: 0;
+  box-shadow: var(--shadow-up);
+  border: none;
+  border-top: 1px solid var(--outline-variant);
   display: flex;
   align-items: center;
   height: var(--bottom-nav-h);
@@ -205,11 +202,11 @@ body {
   z-index: 40;
 }
 
-/* Page bottom padding: pill height + float gap + extra clearance */
+/* Page bottom padding: pill height + extra clearance */
 #page-wrapper {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: calc(var(--bottom-nav-h) + var(--nav-float-gap) + var(--nav-fab-rise) + 16px);
+  padding-bottom: calc(var(--bottom-nav-h) + var(--nav-fab-rise) + 16px);
 }
 
 .nav-icon-wrap {
@@ -1886,6 +1883,43 @@ textarea.form-input {
 @keyframes toastOut { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(-8px) scale(0.95)} }
 @keyframes fadeSlideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 
+.form-grid-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (min-width: 480px) {
+  .form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.action-btn-sale {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.18s;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.25);
+}
+.action-btn-sale:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.35);
+}
+.action-btn-sale:active {
+  transform: scale(0.97);
+}
+
 /* ============================================================
    UTILITY
    ============================================================ */
@@ -1894,3 +1928,14 @@ textarea.form-input {
 .sr-only   { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0); }
 .truncate  { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .no-scroll { overflow:hidden; }
+
+.bell-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background: var(--red-600);
+  border-radius: 50%;
+  border: 1.5px solid var(--white);
+}
