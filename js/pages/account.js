@@ -53,9 +53,9 @@ const AccountPage = {
         <div style="background:var(--white);border:1px solid rgba(196,197,217,0.25);border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-sm)">
           <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--primary-100),var(--primary-200));border-radius:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(16,74,240,0.15);overflow:hidden">
             ${profile.photo
-              ? `<img src="${profile.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:18px" alt="Foto Profil">`
-              : `<span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:var(--primary-700)">${initials}</span>`
-            }
+        ? `<img src="${profile.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:18px" alt="Foto Profil">`
+        : `<span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:var(--primary-700)">${initials}</span>`
+      }
           </div>
           <div style="flex:1;min-width:0">
             <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escHtml(profile.name)}</div>
@@ -180,9 +180,9 @@ const AccountPage = {
           <div style="position:relative;cursor:pointer" onclick="document.getElementById('ep-photo-input').click()" title="Ganti foto profil">
             <div id="ep-avatar" style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary-100),var(--primary-200));border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(16,74,240,0.18);border:3px solid white;overflow:hidden">
               ${profile.photo
-                ? `<img id="ep-avatar-img" src="${profile.photo}" style="width:100%;height:100%;object-fit:cover" alt="Foto Profil">`
-                : `<span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:var(--primary-700)">${this._initials(profile.name)}</span>`
-              }
+        ? `<img id="ep-avatar-img" src="${profile.photo}" style="width:100%;height:100%;object-fit:cover" alt="Foto Profil">`
+        : `<span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:var(--primary-700)">${this._initials(profile.name)}</span>`
+      }
             </div>
             <div style="position:absolute;bottom:-6px;right:-6px;width:28px;height:28px;background:var(--primary-600);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(16,74,240,0.3)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -430,10 +430,11 @@ const AccountPage = {
       <div style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:20px">
 
         <!-- App Logo: tampilkan foto profil jika ada, fallback ke ikon SVG -->
-        ${(()=>{const p=this._getProfile();return p.photo
+        ${(() => {
+        const p = this._getProfile(); return p.photo
           ? `<div style="width:90px;height:90px;border-radius:28px;overflow:hidden;box-shadow:0 8px 24px rgba(16,74,240,0.25);border:3px solid white"><img src="${p.photo}" style="width:100%;height:100%;object-fit:cover" alt="Foto Profil"></div>`
           : `<div style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary),var(--primary-700));border-radius:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(16,74,240,0.25)"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>`;
-        })()}
+      })()}
         <div style="text-align:center">
           <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--on-surface)">LanggengMakmur Cashier</h2>
           <p style="font-size:13px;color:var(--on-surface-variant);opacity:0.65;margin-top:4px">Versi 2.0.0 &bull; PWA</p>
@@ -445,7 +446,7 @@ const AccountPage = {
         ['Tipe', 'Progressive Web App (PWA)'],
         ['Backend', 'Google Apps Script + Sheets'],
         ['Bahasa', 'Vanilla JavaScript'],
-        ['Dibuat Oleh', 'Haidar Rafi'],
+        ['Dibuat Oleh', 'Haidar Rafi Suka Coding'],
       ].map(([l, v], i, a) => `
             <div style="display:flex;justify-content:space-between;padding:13px 16px;${i < a.length - 1 ? 'border-bottom:1px solid rgba(196,197,217,0.12)' : ''}">
               <span style="font-size:13px;color:var(--on-surface-variant);opacity:0.7">${l}</span>
@@ -563,11 +564,11 @@ const AccountPage = {
   _getProfile() {
     const saved = JSON.parse(localStorage.getItem('lm_profile') || '{}');
     return {
-      name:      saved.name      || 'Pemilik Toko',
+      name: saved.name || 'Pemilik Toko',
       storeName: saved.storeName || 'LanggengMakmur',
-      email:     saved.email     || '',
-      phone:     saved.phone     || '',
-      photo:     saved.photo     || null,
+      email: saved.email || '',
+      phone: saved.phone || '',
+      photo: saved.photo || null,
     };
   },
 
