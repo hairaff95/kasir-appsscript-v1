@@ -11,13 +11,13 @@ const IncomePage = {
     return `
       <div class="page-header">
         <div class="page-header-row">
-          <div style="display:flex;align-items:center;gap:10px">
-            <button onclick="App.navigate('dashboard')" class="back-btn">
+          <div style="display:flex;align-items:center;gap:12px">
+            <button onclick="App.navigate('dashboard')" class="back-btn" style="border-radius:10px">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <div>
               <h1>Tambah Pemasukan</h1>
-              <div class="subtitle">Catat uang masuk ke kas</div>
+              <div class="subtitle">Catat uang masuk ke kas warung</div>
             </div>
           </div>
         </div>
