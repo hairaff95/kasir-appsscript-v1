@@ -2,8 +2,8 @@
  * api.js v2 — API bridge + LocalStorage mock (updated field names)
  */
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfRd82JeeEOuUipdp_IvaaIeT-W6tj7t7csZoN-ZshSb59tTxkeOi2J4i9VXFOR0eu/exec';
-const DEMO_MODE = false; // set false after connecting to Apps Script
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzLipj5swpTV7XEP70i6nVFiPE1S68P4m2BGyzFINfkyCbOTWM1cjJayRuryrts4HoV/exec';
+const DEMO_MODE = false;
 
 const _DB = {
   TRX: 'km_trx',
