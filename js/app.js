@@ -28,7 +28,21 @@ const App = {
     // Check session
     const storedUser = localStorage.getItem('lm_user');
     if (storedUser) {
-      this._user = JSON.parse(storedUser);
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed.id === 'USR-MOCK') {
+          localStorage.removeItem('lm_user');
+          localStorage.removeItem('demo_mode');
+          localStorage.removeItem('lm_profile');
+          location.reload();
+          return;
+        }
+        this._user = parsed;
+      } catch (e) {
+        localStorage.removeItem('lm_user');
+        location.reload();
+        return;
+      }
       const appShell = document.getElementById('app-shell');
       if (appShell) appShell.style.display = 'flex';
       const authContainer = document.getElementById('auth-container');
