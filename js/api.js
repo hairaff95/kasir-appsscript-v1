@@ -2,7 +2,7 @@
  * api.js v2 — API bridge + LocalStorage mock (updated field names)
  */
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZog8eCK54VzmJfZUhGlRugStR0Qg2_63mnmGFqklsc1TcEimerFBwdmgjbWCn3gVT/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzHTTdpE7sC_fM-tVtivtEurQaicPPEDD2CxNUBeqfGRkE8t_dDMdAe0zoZXmhnOsIV/exec';
 const DEMO_MODE = localStorage.getItem('demo_mode') !== 'false';
 
 const _DB = {
