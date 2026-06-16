@@ -74,7 +74,8 @@ const AccountPage = {
           <div style="background:var(--white);border:1px solid rgba(196,197,217,0.22);border-radius:20px;overflow:hidden;box-shadow:var(--shadow-xs)">
             ${this._menuRow('person', 'Informasi Toko', 'Nama, email, dan detail toko', "AccountPage._go('store-info')", false)}
             ${this._menuRow('lock_reset', 'Reset Data Demo', 'Kembalikan data ke kondisi awal', "AccountPage._resetData()", false, 'warning')}
-            ${this._menuRow('sync', 'Hubungkan Google Sheets', 'Setup backend data produksi', "AccountPage._go('store-info')", true)}
+            ${this._menuRow('sync', 'Hubungkan Google Sheets', 'Setup backend data produksi', "AccountPage._go('store-info')", false)}
+            ${this._menuRow('log_out', 'Keluar (Logout)', 'Keluar dari sesi akun Anda', "AccountPage._logout()", true, 'warning')}
           </div>
         </div>
 
@@ -123,6 +124,7 @@ const AccountPage = {
       download: `<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`,
       help: `<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
       info: `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`,
+      log_out: `<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />`,
     };
 
     return `
@@ -529,6 +531,15 @@ const AccountPage = {
       Toast.success('Data demo berhasil direset');
       App.navigate('dashboard');
     });
+  },
+
+  _logout() {
+    App.confirm('Apakah Anda yakin ingin keluar dari aplikasi?', () => {
+      localStorage.removeItem('lm_user');
+      localStorage.removeItem('demo_mode');
+      localStorage.removeItem('lm_profile');
+      location.reload();
+    }, null, 'Keluar');
   },
 
   _showHelp() {

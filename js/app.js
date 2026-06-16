@@ -18,13 +18,36 @@ const App = {
 
   // ---- Nav config (4 items + center FAB) ----
   _nav: [
-    { id: 'dashboard', label: 'Home',    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>` },
-    { id: 'history',   label: 'History', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 3"/></svg>` },
-    { id: 'report',    label: 'Stats',   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>` },
-    { id: 'account',   label: 'Config',  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>` },
+    { id: 'dashboard', label: 'Dasbor',    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>` },
+    { id: 'history',   label: 'Histori', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 3"/></svg>` },
+    { id: 'report',    label: 'Laporan',   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>` },
+    { id: 'account',   label: 'Pengaturan',  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>` },
   ],
 
   init() {
+    // Check session
+    const storedUser = localStorage.getItem('lm_user');
+    if (storedUser) {
+      this._user = JSON.parse(storedUser);
+      const appShell = document.getElementById('app-shell');
+      if (appShell) appShell.style.display = 'flex';
+      const authContainer = document.getElementById('auth-container');
+      if (authContainer) authContainer.style.display = 'none';
+    } else {
+      this._user = null;
+      const appShell = document.getElementById('app-shell');
+      if (appShell) appShell.style.display = 'none';
+      const authContainer = document.getElementById('auth-container');
+      if (authContainer) {
+        authContainer.style.display = 'block';
+        AuthPage.render(authContainer);
+      }
+      
+      const loader = document.getElementById('loading-overlay');
+      if (loader) loader.style.display = 'none';
+      return;
+    }
+
     // Register pages
     this._pages = { dashboard: DashboardPage, income: IncomePage, expense: ExpensePage, debt: DebtPage, history: HistoryPage, report: ReportPage, account: AccountPage };
 
@@ -220,7 +243,7 @@ const App = {
   },
 
   // ---- Confirm ----
-  confirm(msg, onOk, onCancel) {
+  confirm(msg, onOk, onCancel, okLabel = 'Hapus') {
     document.getElementById('app-confirm')?.remove();
     const div = document.createElement('div');
     div.id = 'app-confirm';
@@ -232,7 +255,7 @@ const App = {
         <div class="confirm-msg">${Utils.escHtml(msg)}</div>
         <div class="confirm-actions">
           <button id="conf-cancel" class="btn btn-ghost" style="flex:1;height:40px">Batal</button>
-          <button id="conf-ok"     class="btn btn-red"   style="flex:1;height:40px">Hapus</button>
+          <button id="conf-ok"     class="btn btn-red"   style="flex:1;height:40px">${okLabel}</button>
         </div>
       </div>
     `;

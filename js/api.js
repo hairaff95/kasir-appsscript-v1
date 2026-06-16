@@ -3,7 +3,7 @@
  */
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzLipj5swpTV7XEP70i6nVFiPE1S68P4m2BGyzFINfkyCbOTWM1cjJayRuryrts4HoV/exec';
-const DEMO_MODE = false;
+const DEMO_MODE = localStorage.getItem('demo_mode') !== 'false';
 
 const _DB = {
   TRX: 'km_trx',
@@ -187,6 +187,14 @@ const MockDB = {
   getDebtPayments(debtId) {
     return this._g(_DB.PAYMENTS).filter(p => p.debt_id === debtId).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   },
+
+  login(email, password) {
+    return { id: 'USR-MOCK', name: 'Pemilik Toko (Demo)', email: email, store_id: 'default' };
+  },
+
+  register(name, email, password) {
+    return { id: 'USR-MOCK', name: name, email: email, store_id: 'default' };
+  },
 };
 
 // ---- API Facade ----
@@ -234,6 +242,8 @@ const Api = {
   async addDebtPayment(data) { return this._call(() => DEMO_MODE ? MockDB.addDebtPayment(data) : this._post('addDebtPayment', data)); },
   async getDebtPayments(debtId) { return this._call(() => DEMO_MODE ? MockDB.getDebtPayments(debtId) : this._fetch('getDebtDetail', { debt_id: debtId }).then(d => d.payments)); },
   async getReport(p = 'daily') { return this._call(() => DEMO_MODE ? MockDB.getReport(p) : this._fetch('getReport', { store_id: App.storeId(), period: p })); },
+  async login(email, password) { return this._call(() => DEMO_MODE ? MockDB.login(email, password) : this._post('login', { email, password })); },
+  async register(name, email, password) { return this._call(() => DEMO_MODE ? MockDB.register(name, email, password) : this._post('register', { name, email, password })); },
 };
 
 window.Api = Api;
