@@ -256,6 +256,18 @@ const MockDB = {
     this._s(_DB.PRODUCTS, this._g(_DB.PRODUCTS).filter(r => r.id !== id));
     return { deleted: id };
   },
+
+  markDebtPaid(id) {
+    const debts = this._g(_DB.DEBTS);
+    const idx = debts.findIndex(d => d.id === id);
+    if (idx !== -1) {
+      const debt = debts[idx];
+      debts[idx] = { ...debt, amount_paid: debt.amount_total, amount_remaining: 0, status: 'paid' };
+      this._s(_DB.DEBTS, debts);
+      return debts[idx];
+    }
+    throw new Error('Kasbon tidak ditemukan');
+  },
 };
 const ApiCache = {
   _cache: {},
@@ -269,6 +281,7 @@ const Api = {
   _baseUrl: APPS_SCRIPT_URL,
   _loadingListeners: [],
   _isLoading: false,
+  _isSyncing: false,
 
   onLoadingChange(fn) { this._loadingListeners.push(fn); },
   _setLoading(val) { this._isLoading = val; this._loadingListeners.forEach(fn => fn(val)); },
@@ -297,90 +310,394 @@ const Api = {
     }
   },
 
+  _queueOfflineAction(action, data, localResult) {
+    const queue = JSON.parse(localStorage.getItem('km_sync_queue') || '[]');
+    queue.push({
+      id: Utils.genId('SYNC'),
+      action,
+      data,
+      localId: localResult ? localResult.id : null,
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('km_sync_queue', JSON.stringify(queue));
+  },
+
+  async _executeWrite(action, serverFn, localFn, dataForQueue) {
+    if (DEMO_MODE) {
+      return localFn();
+    }
+    if (!navigator.onLine) {
+      const localResult = localFn();
+      this._queueOfflineAction(action, dataForQueue, localResult);
+      ApiCache.clear();
+      window.dispatchEvent(new CustomEvent('offline-sync-status'));
+      Toast.info('Aplikasi offline. Transaksi disimpan lokal dan akan disinkronkan saat online.');
+      return localResult;
+    }
+    try {
+      const serverResult = await this._call(serverFn);
+      localFn(serverResult);
+      ApiCache.clear();
+      return serverResult;
+    } catch (err) {
+      console.warn('Network error during write, falling back to offline queue:', err);
+      const localResult = localFn();
+      this._queueOfflineAction(action, dataForQueue, localResult);
+      ApiCache.clear();
+      window.dispatchEvent(new CustomEvent('offline-sync-status'));
+      Toast.info('Koneksi terputus. Data disimpan lokal dan akan disinkronkan saat online.');
+      return localResult;
+    }
+  },
+
+  async syncOfflineQueue() {
+    if (DEMO_MODE) return;
+    if (!navigator.onLine) return;
+    if (this._isSyncing) return;
+
+    const queue = JSON.parse(localStorage.getItem('km_sync_queue') || '[]');
+    if (queue.length === 0) return;
+
+    this._isSyncing = true;
+    window.dispatchEvent(new CustomEvent('offline-sync-status', { detail: { syncing: true } }));
+    Toast.info(`Menyinkronkan ${queue.length} data offline ke cloud...`);
+
+    let successCount = 0;
+    let failedCount = 0;
+    const idMap = {};
+    const remainingQueue = [];
+
+    for (const item of queue) {
+      try {
+        let payload = { ...item.data };
+        if (item.action === 'addDebtPayment') {
+          if (payload.debt_id && idMap[payload.debt_id]) {
+            payload.debt_id = idMap[payload.debt_id];
+          }
+        }
+
+        let res;
+        if (item.action === 'addTransaction') {
+          res = await this._post('addTransaction', { ...payload, store_id: App.storeId() });
+        } else if (item.action === 'deleteTransaction') {
+          res = await this._post('deleteTransaction', payload);
+        } else if (item.action === 'addDebt') {
+          res = await this._post('addDebt', { ...payload, store_id: App.storeId() });
+        } else if (item.action === 'deleteDebt') {
+          res = await this._post('deleteDebt', payload);
+        } else if (item.action === 'addDebtPayment') {
+          res = await this._post('addDebtPayment', payload);
+        } else if (item.action === 'addProduct') {
+          res = await this._post('addProduct', { ...payload, store_id: App.storeId() });
+        } else if (item.action === 'updateProduct') {
+          res = await this._post('updateProduct', { ...payload, store_id: App.storeId() });
+        } else if (item.action === 'deleteProduct') {
+          res = await this._post('deleteProduct', payload);
+        } else if (item.action === 'markDebtPaid') {
+          res = await this._post('markDebtPaid', payload);
+        }
+
+        if (res && res.id && item.localId) {
+          idMap[item.localId] = res.id;
+        }
+
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to sync queued item ${item.action}:`, err);
+        failedCount++;
+        remainingQueue.push(item);
+      }
+    }
+
+    localStorage.setItem('km_sync_queue', JSON.stringify(remainingQueue));
+    this._isSyncing = false;
+    ApiCache.clear();
+    window.dispatchEvent(new CustomEvent('offline-sync-status', { detail: { syncing: false } }));
+
+    if (failedCount > 0) {
+      Toast.warning(`Sinkronisasi selesai: ${successCount} berhasil, ${failedCount} gagal ditransfer.`);
+    } else {
+      Toast.success(`Semua data offline (${successCount} data) berhasil disinkronkan ke Google Sheets!`);
+    }
+
+    if (window.App && typeof App.navigate === 'function') {
+      App.navigate(App.currentPage, false);
+    }
+  },
+
   // ---- Endpoints ----
   async getSummary() {
     const key = 'getSummary';
     const cached = ApiCache.get(key);
     if (cached) return cached;
-    const res = await this._call(() => DEMO_MODE ? MockDB.getSummary() : this._fetch('getSummary', { store_id: App.storeId() }));
-    ApiCache.set(key, res);
-    return res;
+    
+    if (DEMO_MODE) {
+      const res = await this._call(() => MockDB.getSummary());
+      ApiCache.set(key, res);
+      return res;
+    }
+    
+    try {
+      const res = await this._call(() => this._fetch('getSummary', { store_id: App.storeId() }));
+      localStorage.setItem('km_summary_cache', JSON.stringify(res));
+      ApiCache.set(key, res);
+      return res;
+    } catch (err) {
+      console.warn('Failed to fetch summary, using offline cache:', err);
+      const cached = localStorage.getItem('km_summary_cache');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          ApiCache.set(key, parsed);
+          return parsed;
+        } catch (e) {}
+      }
+      const fallback = MockDB.getSummary();
+      ApiCache.set(key, fallback);
+      return fallback;
+    }
   },
 
   async getTransactions(f = 'all', t = 'all') {
     const key = `getTransactions_${f}_${t}`;
     const cached = ApiCache.get(key);
     if (cached) return cached;
-    const res = await this._call(() => DEMO_MODE ? MockDB.getTransactions(f, t) : this._fetch('getTransactions', { store_id: App.storeId(), filter: f, type: t }));
-    if (res && res.length > 0) {
-      const lastViewed = localStorage.getItem('lm_last_viewed_history');
-      const latestTime = res[0].created_at || res[0].date;
-      if (!lastViewed || new Date(latestTime) > new Date(lastViewed)) {
-        localStorage.setItem('lm_has_unread_trx', '1');
-      }
+
+    if (DEMO_MODE) {
+      const res = await this._call(() => MockDB.getTransactions(f, t));
+      ApiCache.set(key, res);
+      return res;
     }
-    ApiCache.set(key, res);
-    return res;
+
+    try {
+      const res = await this._call(() => this._fetch('getTransactions', { store_id: App.storeId(), filter: f, type: t }));
+      if (f === 'all' && t === 'all') {
+        localStorage.setItem('km_trx', JSON.stringify(res));
+      }
+      localStorage.setItem(`km_trx_cache_${f}_${t}`, JSON.stringify(res));
+
+      if (res && res.length > 0) {
+        const lastViewed = localStorage.getItem('lm_last_viewed_history');
+        const latestTime = res[0].created_at || res[0].date;
+        if (!lastViewed || new Date(latestTime) > new Date(lastViewed)) {
+          localStorage.setItem('lm_has_unread_trx', '1');
+        }
+      }
+      ApiCache.set(key, res);
+      return res;
+    } catch (err) {
+      console.warn('Failed to fetch transactions, using offline cache:', err);
+      const cached = localStorage.getItem(`km_trx_cache_${f}_${t}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          ApiCache.set(key, parsed);
+          return parsed;
+        } catch (e) {}
+      }
+      const fallback = MockDB.getTransactions(f, t);
+      ApiCache.set(key, fallback);
+      return fallback;
+    }
   },
 
   async addTransaction(data) {
-    ApiCache.clear();
     localStorage.setItem('lm_has_unread_trx', '1');
-    return this._call(() => DEMO_MODE ? MockDB.addTransaction(data) : this._post('addTransaction', { ...data, store_id: App.storeId() }));
+    return this._executeWrite(
+      'addTransaction',
+      () => this._post('addTransaction', { ...data, store_id: App.storeId() }),
+      (serverResult) => {
+        if (serverResult) {
+          const list = MockDB._g('km_trx').filter(t => t.id !== serverResult.id);
+          list.unshift(serverResult);
+          MockDB._s('km_trx', list);
+          return serverResult;
+        } else {
+          return MockDB.addTransaction(data);
+        }
+      },
+      data
+    );
   },
 
   async deleteTransaction(id) {
-    ApiCache.clear();
-    return this._call(() => DEMO_MODE ? MockDB.deleteTransaction(id) : this._post('deleteTransaction', { id }));
+    return this._executeWrite(
+      'deleteTransaction',
+      () => this._post('deleteTransaction', { id }),
+      (serverResult) => {
+        if (serverResult) {
+          MockDB.deleteTransaction(serverResult.deleted || id);
+          return serverResult;
+        } else {
+          return MockDB.deleteTransaction(id);
+        }
+      },
+      { id }
+    );
   },
 
   async getDebts(s = 'all') {
     const key = `getDebts_${s}`;
     const cached = ApiCache.get(key);
     if (cached) return cached;
-    const res = await this._call(() => DEMO_MODE ? MockDB.getDebts(s) : this._fetch('getDebts', { store_id: App.storeId(), status: s }));
-    ApiCache.set(key, res);
-    return res;
+
+    if (DEMO_MODE) {
+      const res = await this._call(() => MockDB.getDebts(s));
+      ApiCache.set(key, res);
+      return res;
+    }
+
+    try {
+      const res = await this._call(() => this._fetch('getDebts', { store_id: App.storeId(), status: s }));
+      if (s === 'all') {
+        localStorage.setItem('km_debts', JSON.stringify(res));
+      }
+      localStorage.setItem(`km_debts_cache_${s}`, JSON.stringify(res));
+      ApiCache.set(key, res);
+      return res;
+    } catch (err) {
+      console.warn('Failed to fetch debts, using offline cache:', err);
+      const cached = localStorage.getItem(`km_debts_cache_${s}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          ApiCache.set(key, parsed);
+          return parsed;
+        } catch (e) {}
+      }
+      const fallback = MockDB.getDebts(s);
+      ApiCache.set(key, fallback);
+      return fallback;
+    }
   },
 
   async addDebt(data) {
-    ApiCache.clear();
-    return this._call(() => DEMO_MODE ? MockDB.addDebt(data) : this._post('addDebt', { ...data, store_id: App.storeId() }));
+    return this._executeWrite(
+      'addDebt',
+      () => this._post('addDebt', { ...data, store_id: App.storeId() }),
+      (serverResult) => {
+        if (serverResult) {
+          const list = MockDB._g('km_debts').filter(d => d.id !== serverResult.id);
+          list.unshift(serverResult);
+          MockDB._s('km_debts', list);
+          return serverResult;
+        } else {
+          return MockDB.addDebt(data);
+        }
+      },
+      data
+    );
   },
 
   async deleteDebt(id) {
-    ApiCache.clear();
-    return this._call(() => DEMO_MODE ? MockDB.deleteDebt(id) : this._post('deleteDebt', { id }));
+    return this._executeWrite(
+      'deleteDebt',
+      () => this._post('deleteDebt', { id }),
+      (serverResult) => {
+        if (serverResult) {
+          MockDB.deleteDebt(serverResult.deleted || id);
+          return serverResult;
+        } else {
+          return MockDB.deleteDebt(id);
+        }
+      },
+      { id }
+    );
   },
 
   async addDebtPayment(data) {
-    ApiCache.clear();
     localStorage.setItem('lm_has_unread_trx', '1');
-    return this._call(() => DEMO_MODE ? MockDB.addDebtPayment(data) : this._post('addDebtPayment', data));
+    return this._executeWrite(
+      'addDebtPayment',
+      () => this._post('addDebtPayment', data),
+      (serverResult) => {
+        const payRow = MockDB.addDebtPayment(data);
+        if (serverResult && serverResult.id) {
+          const pays = MockDB._g('km_pays');
+          const idx = pays.findIndex(p => p.id === payRow.id);
+          if (idx !== -1) {
+            pays[idx].id = serverResult.id;
+            MockDB._s('km_pays', pays);
+          }
+        }
+        return payRow;
+      },
+      data
+    );
   },
 
   async getDebtPayments(debtId) {
     const key = `getDebtPayments_${debtId}`;
     const cached = ApiCache.get(key);
     if (cached) return cached;
-    const res = await this._call(() => DEMO_MODE ? MockDB.getDebtPayments(debtId) : this._fetch('getDebtDetail', { debt_id: debtId }).then(d => d.payments));
-    ApiCache.set(key, res);
-    return res;
+
+    if (DEMO_MODE) {
+      const res = await this._call(() => MockDB.getDebtPayments(debtId));
+      ApiCache.set(key, res);
+      return res;
+    }
+
+    try {
+      const res = await this._call(() => this._fetch('getDebtDetail', { debt_id: debtId }).then(d => d.payments));
+      const localPays = MockDB._g('km_pays').filter(p => p.debt_id !== debtId);
+      MockDB._s('km_pays', [...localPays, ...res]);
+      ApiCache.set(key, res);
+      return res;
+    } catch (err) {
+      console.warn('Failed to fetch debt payments, using offline cache:', err);
+      const fallback = MockDB.getDebtPayments(debtId);
+      ApiCache.set(key, fallback);
+      return fallback;
+    }
   },
 
   async markDebtPaid(id) {
-    ApiCache.clear();
     localStorage.setItem('lm_has_unread_trx', '1');
-    return this._call(() => DEMO_MODE ? MockDB.markDebtPaid(id) : this._post('markDebtPaid', { debt_id: id }));
+    return this._executeWrite(
+      'markDebtPaid',
+      () => this._post('markDebtPaid', { debt_id: id }),
+      (serverResult) => {
+        if (serverResult) {
+          MockDB.markDebtPaid(id);
+          return serverResult;
+        } else {
+          return MockDB.markDebtPaid(id);
+        }
+      },
+      { id }
+    );
   },
 
   async getReport(p = 'daily') {
     const key = `getReport_${p}`;
     const cached = ApiCache.get(key);
     if (cached) return cached;
-    const res = await this._call(() => DEMO_MODE ? MockDB.getReport(p) : this._fetch('getReport', { store_id: App.storeId(), period: p }));
-    ApiCache.set(key, res);
-    return res;
+
+    if (DEMO_MODE) {
+      const res = await this._call(() => MockDB.getReport(p));
+      ApiCache.set(key, res);
+      return res;
+    }
+
+    try {
+      const res = await this._call(() => this._fetch('getReport', { store_id: App.storeId(), period: p }));
+      localStorage.setItem(`km_report_cache_${p}`, JSON.stringify(res));
+      ApiCache.set(key, res);
+      return res;
+    } catch (err) {
+      console.warn('Failed to fetch report, using offline cache:', err);
+      const cached = localStorage.getItem(`km_report_cache_${p}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          ApiCache.set(key, parsed);
+          return parsed;
+        } catch (e) {}
+      }
+      const fallback = MockDB.getReport(p);
+      ApiCache.set(key, fallback);
+      return fallback;
+    }
   },
 
   async saveReportToDrive(period, transactions, email) {
@@ -418,26 +735,90 @@ const Api = {
     const key = 'getProducts';
     const cached = ApiCache.get(key);
     if (cached) return cached;
-    const res = await this._call(() => DEMO_MODE ? MockDB.getProducts() : this._fetch('getProducts', { store_id: App.storeId() }));
-    ApiCache.set(key, res);
-    return res;
+
+    if (DEMO_MODE) {
+      const res = await this._call(() => MockDB.getProducts());
+      ApiCache.set(key, res);
+      return res;
+    }
+
+    try {
+      const res = await this._call(() => this._fetch('getProducts', { store_id: App.storeId() }));
+      localStorage.setItem('km_products', JSON.stringify(res));
+      ApiCache.set(key, res);
+      return res;
+    } catch (err) {
+      console.warn('Failed to fetch products, using offline cache:', err);
+      const fallback = MockDB.getProducts();
+      ApiCache.set(key, fallback);
+      return fallback;
+    }
   },
 
   async addProduct(data) {
-    ApiCache.clear();
-    return this._call(() => DEMO_MODE ? MockDB.addProduct(data) : this._post('addProduct', { ...data, store_id: App.storeId() }));
+    return this._executeWrite(
+      'addProduct',
+      () => this._post('addProduct', { ...data, store_id: App.storeId() }),
+      (serverResult) => {
+        if (serverResult) {
+          const list = MockDB._g('km_products').filter(p => p.id !== serverResult.id);
+          list.unshift(serverResult);
+          MockDB._s('km_products', list);
+          return serverResult;
+        } else {
+          return MockDB.addProduct(data);
+        }
+      },
+      data
+    );
   },
 
   async updateProduct(id, data) {
-    ApiCache.clear();
-    return this._call(() => DEMO_MODE ? MockDB.updateProduct(id, data) : this._post('updateProduct', { id, ...data, store_id: App.storeId() }));
+    return this._executeWrite(
+      'updateProduct',
+      () => this._post('updateProduct', { id, ...data, store_id: App.storeId() }),
+      (serverResult) => {
+        if (serverResult) {
+          const list = MockDB._g('km_products');
+          const idx = list.findIndex(p => p.id === id);
+          if (idx !== -1) {
+            list[idx] = serverResult;
+            MockDB._s('km_products', list);
+          }
+          return serverResult;
+        } else {
+          return MockDB.updateProduct(id, data);
+        }
+      },
+      { id, ...data }
+    );
   },
 
   async deleteProduct(id) {
-    ApiCache.clear();
-    return this._call(() => DEMO_MODE ? MockDB.deleteProduct(id) : this._post('deleteProduct', { id }));
+    return this._executeWrite(
+      'deleteProduct',
+      () => this._post('deleteProduct', { id }),
+      (serverResult) => {
+        if (serverResult) {
+          MockDB.deleteProduct(serverResult.deleted || id);
+          return serverResult;
+        } else {
+          return MockDB.deleteProduct(id);
+        }
+      },
+      { id }
+    );
   },
 };
+
+// Automatically sync when online
+window.addEventListener('online', () => {
+  Api.syncOfflineQueue();
+});
+// Trigger sync check on startup
+setTimeout(() => {
+  Api.syncOfflineQueue();
+}, 2000);
 
 window.Api = Api;
 window.MockDB = MockDB;

@@ -87,6 +87,18 @@ const App = {
     // Install banner
     this._setupInstall();
 
+    // Connection event listeners
+    window.addEventListener('online', () => {
+      this.updateOfflineBanner();
+    });
+    window.addEventListener('offline', () => {
+      this.updateOfflineBanner();
+    });
+    window.addEventListener('offline-sync-status', () => {
+      this.updateOfflineBanner();
+    });
+    this.updateOfflineBanner();
+
     // Build nav
     this._buildNav();
 
@@ -241,6 +253,53 @@ const App = {
       document.getElementById('install-banner')?.classList.add('hidden');
       localStorage.setItem('install_dismissed', '1');
     });
+  },
+
+  updateOfflineBanner() {
+    const banner = document.getElementById('offline-sync-banner');
+    if (!banner) return;
+
+    if (window.DEMO_MODE) {
+      banner.className = 'hidden';
+      return;
+    }
+
+    const queue = JSON.parse(localStorage.getItem('km_sync_queue') || '[]');
+    const isOnline = navigator.onLine;
+
+    banner.className = '';
+    
+    if (!isOnline) {
+      banner.classList.add('offline');
+      banner.innerHTML = `
+        <div class="offline-status-text">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.5a3 3 0 00-3-3m-6.42.06A10.94 10.94 0 005 12.5a3 3 0 003-3M12 18.5a3 3 0 003-3H9a3 3 0 003 3z"/></svg>
+          <span>Bekerja Offline${queue.length > 0 ? ` (${queue.length} data disimpan lokal)` : ''}</span>
+        </div>
+      `;
+    } else if (window.Api && Api._isSyncing) {
+      banner.classList.add('syncing');
+      banner.innerHTML = `
+        <div class="offline-status-text">
+          <span class="offline-spinner"></span>
+          <span>Menyinkronkan data ke Google Sheets...</span>
+        </div>
+      `;
+    } else if (queue.length > 0) {
+      banner.classList.add('sync-pending');
+      banner.innerHTML = `
+        <div class="offline-status-text">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/></svg>
+          <span>Ada ${queue.length} data offline belum disinkronkan</span>
+        </div>
+        <button class="offline-sync-btn" onclick="Api.syncOfflineQueue()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Sinkronkan
+        </button>
+      `;
+    } else {
+      banner.className = 'hidden';
+    }
   },
 
   // ---- User ----
